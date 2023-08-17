@@ -1,0 +1,7 @@
+.env*
+!.env.example
+
+breadit-server
+
+migrate.*.sh
+!migrate.example.sh

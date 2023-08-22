@@ -12,6 +12,7 @@ type envConfig struct {
 	DbUrl     string
 	JwtSecret string
 	RedisUrl  string
+	Env       string
 }
 
 var EnvConfig envConfig
@@ -23,11 +24,22 @@ func LoadEnv() {
 		log.Fatal("Unable to load .env:", err)
 	}
 
+	var env string = os.Getenv("ENV")
+
+	if env == "" {
+		env = "development"
+	}
+
 	EnvConfig = envConfig{
 		Port:      os.Getenv("PORT"),
 		DbUrl:     os.Getenv("DB_URL"),
 		JwtSecret: os.Getenv("JWT_SECRET"),
 		RedisUrl:  os.Getenv("REDIS_URL"),
+		Env:       env,
+	}
+
+	if EnvConfig.Env == "" {
+		EnvConfig.Env = "development"
 	}
 
 	if EnvConfig.Port == "" {

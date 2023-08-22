@@ -1,0 +1,13 @@
+-- +goose Up
+CREATE TABLE comments (
+  id SERIAL NOT NULL PRIMARY KEY,
+  text TEXT NOT NULL,
+  post_id INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  author_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reply_to_id INT REFERENCES comments(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- +goose Down
+DROP TABLE comments;

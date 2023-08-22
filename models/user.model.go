@@ -9,7 +9,7 @@ import (
 )
 
 type User struct {
-	ID        string      `json:"id"`
+	ID        int32       `json:"id"`
 	Name      string      `json:"name"`
 	Email     string      `json:"email"`
 	Username  string      `json:"username"`
@@ -20,11 +20,11 @@ type User struct {
 
 func DbUserToUser(dbUser database.User) User {
 	return User{
-		ID: dbUser.ID,
-		Name: dbUser.Name,
-		Email: dbUser.Email,
-		Username: dbUser.Username,
-		Image: null.NewString(dbUser.Image.String, dbUser.Image.Valid),
+		ID:        dbUser.ID,
+		Name:      dbUser.Name,
+		Email:     dbUser.Email,
+		Username:  dbUser.Username,
+		Image:     null.NewString(dbUser.Image.String, dbUser.Image.Valid),
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
 	}

@@ -2,10 +2,13 @@ package utils
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 
+	"github.com/adhupraba/breadit-server/internal/database"
 	"github.com/adhupraba/breadit-server/lib"
 )
 
@@ -56,4 +59,26 @@ func VerifyJwtToken(tokenStr string) (subject string, err error) {
 	}
 
 	return sub, nil
+}
+
+func GetUserFromToken(w http.ResponseWriter, r *http.Request, tokenStr string) (database.User, error) {
+	sub, err := VerifyJwtToken(tokenStr)
+
+	if err != nil {
+		return database.User{}, fmt.Errorf("Invalid token")
+	}
+
+	userId, err := strconv.Atoi(sub)
+
+	if err != nil {
+		return database.User{}, fmt.Errorf("Invalid subject")
+	}
+
+	user, err := lib.DB.FindUserById(r.Context(), int32(userId))
+
+	if err != nil {
+		return database.User{}, fmt.Errorf("The user belonging to this token no logger exists")
+	}
+
+	return user, nil
 }

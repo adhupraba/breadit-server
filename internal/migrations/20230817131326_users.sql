@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE users (
-  id CHAR(21) DEFAULT nanoid() PRIMARY KEY,
+  id SERIAL NOT NULL PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   username TEXT NOT NULL UNIQUE,

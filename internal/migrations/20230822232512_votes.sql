@@ -1,0 +1,14 @@
+-- +goose Up
+CREATE TABLE votes (
+  id SERIAL NOT NULL PRIMARY KEY,
+  post_id INT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type vote_type NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+  UNIQUE(user_id, post_id)
+);
+
+-- +goose Down
+DROP TABLE votes;

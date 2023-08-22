@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/adhupraba/breadit-server/controllers"
+	"github.com/adhupraba/breadit-server/middlewares"
 )
 
 type AuthRoutes struct {
@@ -20,6 +21,9 @@ func (ar *AuthRoutes) declareAuthRoutes() *chi.Mux {
 
 	authRoute.Post("/sign-up", ar.authController.Signup)
 	authRoute.Post("/sign-in", ar.authController.Signin)
+	authRoute.Get("/sign-out", ar.authController.LogoutUser)
+	authRoute.Get("/refresh", ar.authController.RefreshAccessToken)
+	authRoute.Get("/get-me", middlewares.AuthMiddleware(ar.authController.GetUser))
 
 	return authRoute
 }

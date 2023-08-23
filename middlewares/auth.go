@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/adhupraba/breadit-server/internal/database"
@@ -14,14 +15,15 @@ func AuthMiddleware(handler NextFunc) http.HandlerFunc {
 		cookie, err := r.Cookie("access_token")
 
 		if err != nil {
-			utils.RespondWithError(w, http.StatusForbidden, "Could not get access token")
+			fmt.Println("Could not get access token")
+			utils.RespondWithError(w, http.StatusUnauthorized, "Unauthorized access")
 			return
 		}
 
 		user, err := utils.GetUserFromToken(w, r, cookie.Value)
 
 		if err != nil {
-			utils.RespondWithError(w, http.StatusForbidden, err.Error())
+			utils.RespondWithError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
 

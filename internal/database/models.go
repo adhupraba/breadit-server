@@ -6,8 +6,99 @@ package database
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"fmt"
 	"time"
+
+	"github.com/sqlc-dev/pqtype"
 )
+
+type VoteType string
+
+const (
+	VoteTypeUP   VoteType = "UP"
+	VoteTypeDOWN VoteType = "DOWN"
+)
+
+func (e *VoteType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = VoteType(s)
+	case string:
+		*e = VoteType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for VoteType: %T", src)
+	}
+	return nil
+}
+
+type NullVoteType struct {
+	VoteType VoteType
+	Valid    bool // Valid is true if VoteType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullVoteType) Scan(value interface{}) error {
+	if value == nil {
+		ns.VoteType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.VoteType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullVoteType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.VoteType), nil
+}
+
+type Comment struct {
+	ID        int32
+	Text      string
+	PostID    int32
+	AuthorID  int32
+	ReplyToID sql.NullInt32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type CommentVote struct {
+	ID        int32
+	CommentID int32
+	UserID    int32
+	Type      VoteType
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Post struct {
+	ID          int32
+	Title       string
+	Content     pqtype.NullRawMessage
+	SubredditID int32
+	AuthorID    int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type Subreddit struct {
+	ID        int32
+	Name      string
+	CreatorID sql.NullInt32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Subscription struct {
+	ID          int32
+	UserID      int32
+	SubredditID int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
 
 type User struct {
 	ID        int32
@@ -16,6 +107,15 @@ type User struct {
 	Username  string
 	Password  string
 	Image     sql.NullString
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type Vote struct {
+	ID        int32
+	PostID    int32
+	UserID    int32
+	Type      VoteType
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

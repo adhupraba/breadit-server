@@ -22,14 +22,14 @@ import (
 type AuthController struct{}
 
 type signinBody struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=5,max=30"`
 }
 
 type signupBody struct {
-	Name     string `json:"name" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Name     string `json:"name" validate:"required,min=2,max=30"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=5,max=30"`
 }
 
 type authResponse struct {
@@ -45,7 +45,7 @@ func (ac *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 	err := utils.BodyParser(r.Body, &body)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, "Unable to parse credentials.")
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -53,12 +53,12 @@ func (ac *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil && !strings.Contains(err.Error(), "no rows") {
 		fmt.Println("existing user db error", err)
-		utils.RespondWithError(w, http.StatusNotFound, "Unable to validate email.")
+		utils.RespondWithError(w, http.StatusBadRequest, "Unable to validate email.")
 		return
 	}
 
 	if user.ID != 0 {
-		utils.RespondWithError(w, http.StatusBadRequest, "User already exists.")
+		utils.RespondWithError(w, http.StatusConflict, "User already exists.")
 		return
 	}
 
@@ -91,32 +91,6 @@ func (ac *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// accessToken, err := getAccessToken(user, w, r)
-
-	// if err != nil {
-	// 	utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
-
-	// refreshToken, err := getRefreshToken(user, w, r)
-
-	// if err != nil {
-	// 	utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
-	// 	return
-	// }
-
-	// setLoggedInCookie(w)
-
-	// res := authResponse{
-	// 	User:               models.DbUserToUser(user),
-	// 	AccessToken:        accessToken,
-	// 	AccessTokenExpiry:  int(time.Now().Add(constants.AccessTokenTTL).UnixMilli()),
-	// 	RefreshToken:       refreshToken,
-	// 	RefreshTokenExpiry: int(time.Now().Add(constants.RefreshTokenTTL).UnixMilli()),
-	// }
-
-	// utils.RespondWithJson(w, http.StatusCreated, res)
-
 	utils.RespondWithJson(w, http.StatusCreated, utils.Json{"message": "User registered successfully"})
 }
 
@@ -125,14 +99,14 @@ func (ac *AuthController) Signin(w http.ResponseWriter, r *http.Request) {
 	err := utils.BodyParser(r.Body, &body)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusBadRequest, "Unable to parse credentials.")
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
 	user, err := lib.DB.FindUserByEmail(r.Context(), body.Email)
 
 	if err != nil || user.ID == 0 {
-		utils.RespondWithError(w, http.StatusBadRequest, "User does not exist.")
+		utils.RespondWithError(w, http.StatusNotFound, "User does not exist.")
 		return
 	}
 

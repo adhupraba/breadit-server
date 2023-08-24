@@ -13,7 +13,6 @@ require (
 	github.com/redis/go-redis/v9 v9.1.0
 	github.com/sqlc-dev/pqtype v0.2.0
 	golang.org/x/crypto v0.12.0
-	gopkg.in/guregu/null.v4 v4.0.0
 )
 
 require (

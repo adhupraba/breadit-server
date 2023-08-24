@@ -7,7 +7,8 @@ package database
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/adhupraba/breadit-server/internal/types"
 )
 
 const createSubreddit = `-- name: CreateSubreddit :one
@@ -15,8 +16,8 @@ INSERT INTO subreddits (name, creator_id) VALUES ($1, $2) RETURNING id, name, cr
 `
 
 type CreateSubredditParams struct {
-	Name      string
-	CreatorID sql.NullInt32
+	Name      string          `json:"name"`
+	CreatorID types.NullInt32 `json:"creatorId"`
 }
 
 func (q *Queries) CreateSubreddit(ctx context.Context, arg CreateSubredditParams) (Subreddit, error) {

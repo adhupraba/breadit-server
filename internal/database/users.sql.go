@@ -7,7 +7,8 @@ package database
 
 import (
 	"context"
-	"database/sql"
+
+	"github.com/adhupraba/breadit-server/internal/types"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -17,11 +18,11 @@ RETURNING id, name, email, username, password, image, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Name     string
-	Email    string
-	Username string
-	Password string
-	Image    sql.NullString
+	Name     string           `json:"name"`
+	Email    string           `json:"email"`
+	Username string           `json:"username"`
+	Password string           `json:"-"`
+	Image    types.NullString `json:"image"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {

@@ -5,12 +5,11 @@
 package database
 
 import (
-	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"time"
 
-	"github.com/sqlc-dev/pqtype"
+	"github.com/adhupraba/breadit-server/internal/types"
 )
 
 type VoteType string
@@ -33,8 +32,8 @@ func (e *VoteType) Scan(src interface{}) error {
 }
 
 type NullVoteType struct {
-	VoteType VoteType
-	Valid    bool // Valid is true if VoteType is not NULL
+	VoteType VoteType `json:"voteType"`
+	Valid    bool     `json:"valid"` // Valid is true if VoteType is not NULL
 }
 
 // Scan implements the Scanner interface.
@@ -56,66 +55,66 @@ func (ns NullVoteType) Value() (driver.Value, error) {
 }
 
 type Comment struct {
-	ID        int32
-	Text      string
-	PostID    int32
-	AuthorID  int32
-	ReplyToID sql.NullInt32
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int32           `json:"id"`
+	Text      string          `json:"text"`
+	PostID    int32           `json:"postId"`
+	AuthorID  int32           `json:"authorId"`
+	ReplyToID types.NullInt32 `json:"replyToId"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt time.Time       `json:"updatedAt"`
 }
 
 type CommentVote struct {
-	ID        int32
-	CommentID int32
-	UserID    int32
-	Type      VoteType
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int32     `json:"id"`
+	CommentID int32     `json:"commentId"`
+	UserID    int32     `json:"userId"`
+	Type      VoteType  `json:"type"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type Post struct {
-	ID          int32
-	Title       string
-	Content     pqtype.NullRawMessage
-	SubredditID int32
-	AuthorID    int32
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          int32                `json:"id"`
+	Title       string               `json:"title"`
+	Content     types.NullRawMessage `json:"content"`
+	SubredditID int32                `json:"subredditId"`
+	AuthorID    int32                `json:"authorId"`
+	CreatedAt   time.Time            `json:"createdAt"`
+	UpdatedAt   time.Time            `json:"updatedAt"`
 }
 
 type Subreddit struct {
-	ID        int32
-	Name      string
-	CreatorID sql.NullInt32
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int32           `json:"id"`
+	Name      string          `json:"name"`
+	CreatorID types.NullInt32 `json:"creatorId"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt time.Time       `json:"updatedAt"`
 }
 
 type Subscription struct {
-	ID          int32
-	UserID      int32
-	SubredditID int32
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          int32     `json:"id"`
+	UserID      int32     `json:"userId"`
+	SubredditID int32     `json:"subredditId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
 }
 
 type User struct {
-	ID        int32
-	Name      string
-	Email     string
-	Username  string
-	Password  string
-	Image     sql.NullString
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int32            `json:"id"`
+	Name      string           `json:"name"`
+	Email     string           `json:"email"`
+	Username  string           `json:"username"`
+	Password  string           `json:"-"`
+	Image     types.NullString `json:"image"`
+	CreatedAt time.Time        `json:"createdAt"`
+	UpdatedAt time.Time        `json:"updatedAt"`
 }
 
 type Vote struct {
-	ID        int32
-	PostID    int32
-	UserID    int32
-	Type      VoteType
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int32     `json:"id"`
+	PostID    int32     `json:"postId"`
+	UserID    int32     `json:"userId"`
+	Type      VoteType  `json:"type"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }

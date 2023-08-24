@@ -10,86 +10,52 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/sqlc-dev/pqtype"
+	"github.com/adhupraba/breadit-server/internal/types"
 )
 
 const findPostsOfASubreddit = `-- name: FindPostsOfASubreddit :many
-SELECT id, title, content, subreddit_id, author_id, created_at, updated_at FROM posts WHERE subreddit_id = $1 OFFSET $2 LIMIT $3
-`
-
-type FindPostsOfASubredditParams struct {
-	SubredditID int32
-	Offset      int32
-	Limit       int32
-}
-
-func (q *Queries) FindPostsOfASubreddit(ctx context.Context, arg FindPostsOfASubredditParams) ([]Post, error) {
-	rows, err := q.db.QueryContext(ctx, findPostsOfASubreddit, arg.SubredditID, arg.Offset, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Post
-	for rows.Next() {
-		var i Post
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Content,
-			&i.SubredditID,
-			&i.AuthorID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const postsData = `-- name: PostsData :many
 SELECT
   posts.id, posts.title, posts.content, posts.subreddit_id, posts.author_id, posts.created_at, posts.updated_at,
   users.id, users.name, users.email, users.username, users.password, users.image, users.created_at, users.updated_at,
-  json_agg(votes.*) AS votes,
-  json_agg(comments.*) AS comments
+  JSON_AGG(votes.*) AS votes,
+  JSON_AGG(comments.*) AS comments
 FROM posts
   INNER JOIN users ON users.id = posts.author_id
   LEFT JOIN votes ON votes.post_id = posts.id
   LEFT JOIN comments ON comments.post_id = posts.id
 WHERE posts.subreddit_id = $1
 GROUP BY posts.id, users.id
+OFFSET $2 LIMIT $3
 `
 
-type PostsDataRow struct {
-	ID          int32
-	Title       string
-	Content     pqtype.NullRawMessage
-	SubredditID int32
-	AuthorID    int32
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	User        User
-	Votes       json.RawMessage
-	Comments    json.RawMessage
+type FindPostsOfASubredditParams struct {
+	SubredditID int32 `json:"subredditId"`
+	Offset      int32 `json:"offset"`
+	Limit       int32 `json:"limit"`
 }
 
-func (q *Queries) PostsData(ctx context.Context, subredditID int32) ([]PostsDataRow, error) {
-	rows, err := q.db.QueryContext(ctx, postsData, subredditID)
+type FindPostsOfASubredditRow struct {
+	ID          int32                `json:"id"`
+	Title       string               `json:"title"`
+	Content     types.NullRawMessage `json:"content"`
+	SubredditID int32                `json:"subredditId"`
+	AuthorID    int32                `json:"authorId"`
+	CreatedAt   time.Time            `json:"createdAt"`
+	UpdatedAt   time.Time            `json:"updatedAt"`
+	User        User                 `json:"user"`
+	Votes       json.RawMessage      `json:"votes"`
+	Comments    json.RawMessage      `json:"comments"`
+}
+
+func (q *Queries) FindPostsOfASubreddit(ctx context.Context, arg FindPostsOfASubredditParams) ([]FindPostsOfASubredditRow, error) {
+	rows, err := q.db.QueryContext(ctx, findPostsOfASubreddit, arg.SubredditID, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PostsDataRow
+	var items []FindPostsOfASubredditRow
 	for rows.Next() {
-		var i PostsDataRow
+		var i FindPostsOfASubredditRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"database/sql"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -14,8 +13,8 @@ import (
 
 	"github.com/adhupraba/breadit-server/constants"
 	"github.com/adhupraba/breadit-server/internal/database"
+	"github.com/adhupraba/breadit-server/internal/types"
 	"github.com/adhupraba/breadit-server/lib"
-	"github.com/adhupraba/breadit-server/models"
 	"github.com/adhupraba/breadit-server/utils"
 )
 
@@ -33,11 +32,11 @@ type signupBody struct {
 }
 
 type authResponse struct {
-	User               models.User `json:"user"`
-	AccessToken        string      `json:"accessToken"`
-	AccessTokenExpiry  int         `json:"accessTokenExpiry"`
-	RefreshToken       string      `json:"refreshToken"`
-	RefreshTokenExpiry int         `json:"refreshTokenExpiry"`
+	User               database.User `json:"user"`
+	AccessToken        string        `json:"accessToken"`
+	AccessTokenExpiry  int           `json:"accessTokenExpiry"`
+	RefreshToken       string        `json:"refreshToken"`
+	RefreshTokenExpiry int           `json:"refreshTokenExpiry"`
 }
 
 func (ac *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +82,7 @@ func (ac *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 		Email:    body.Email,
 		Password: string(hash),
 		Username: randUsername,
-		Image:    sql.NullString{String: image, Valid: true},
+		Image:    types.NullString{String: image, Valid: true},
 	})
 
 	if err != nil {
@@ -91,7 +90,7 @@ func (ac *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.RespondWithJson(w, http.StatusCreated, utils.Json{"message": "User registered successfully"})
+	utils.RespondWithJson(w, http.StatusCreated, types.Json{"message": "User registered successfully"})
 }
 
 func (ac *AuthController) Signin(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +133,7 @@ func (ac *AuthController) Signin(w http.ResponseWriter, r *http.Request) {
 	setLoggedInCookie(w)
 
 	res := authResponse{
-		User:               models.DbUserToUser(user),
+		User:               user,
 		AccessToken:        accessToken,
 		AccessTokenExpiry:  int(time.Now().Add(constants.AccessTokenTTL).UnixMilli()),
 		RefreshToken:       refreshToken,
@@ -167,7 +166,7 @@ func (ac *AuthController) RefreshAccessToken(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	utils.RespondWithJson(w, http.StatusOK, utils.Json{"accessToken": accessToken})
+	utils.RespondWithJson(w, http.StatusOK, types.Json{"accessToken": accessToken})
 }
 
 func (ac *AuthController) GetUser(w http.ResponseWriter, r *http.Request, user database.User) {

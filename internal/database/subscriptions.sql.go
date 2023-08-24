@@ -14,8 +14,8 @@ INSERT INTO subscriptions (user_id, subreddit_id) VALUES ($1, $2) RETURNING id, 
 `
 
 type CreateSubscriptionParams struct {
-	UserID      int32
-	SubredditID int32
+	UserID      int32 `json:"userId"`
+	SubredditID int32 `json:"subredditId"`
 }
 
 func (q *Queries) CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (Subscription, error) {

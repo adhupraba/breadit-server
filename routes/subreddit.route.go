@@ -20,7 +20,7 @@ func (sr *SubredditRoutes) declareSubredditRoutes() *chi.Mux {
 	subredditRoute := chi.NewRouter()
 
 	subredditRoute.Post("/", middlewares.AuthMiddleware(sr.subRedditController.CreateSubreddit))
-	subredditRoute.Get("/{name}", sr.subRedditController.GetSubredditDataWithErrors)
+	subredditRoute.Get("/{name}", sr.subRedditController.GetSubredditDataWithPosts)
 
 	return subredditRoute
 }

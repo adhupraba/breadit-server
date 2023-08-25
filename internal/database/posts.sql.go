@@ -7,63 +7,47 @@ package database
 
 import (
 	"context"
-	"encoding/json"
-	"time"
-
-	"github.com/adhupraba/breadit-server/internal/types"
 )
 
-const findPostsOfASubreddit = `-- name: FindPostsOfASubreddit :many
+const findPostsOfSubredditWithAuthor = `-- name: FindPostsOfSubredditWithAuthor :many
 SELECT
   posts.id, posts.title, posts.content, posts.subreddit_id, posts.author_id, posts.created_at, posts.updated_at,
-  users.id, users.name, users.email, users.username, users.password, users.image, users.created_at, users.updated_at,
-  JSON_AGG(votes.*) AS votes,
-  JSON_AGG(comments.*) AS comments
+  users.id, users.name, users.email, users.username, users.password, users.image, users.created_at, users.updated_at
 FROM posts
   INNER JOIN users ON users.id = posts.author_id
-  LEFT JOIN votes ON votes.post_id = posts.id
-  LEFT JOIN comments ON comments.post_id = posts.id
 WHERE posts.subreddit_id = $1
 GROUP BY posts.id, users.id
 OFFSET $2 LIMIT $3
 `
 
-type FindPostsOfASubredditParams struct {
+type FindPostsOfSubredditWithAuthorParams struct {
 	SubredditID int32 `json:"subredditId"`
 	Offset      int32 `json:"offset"`
 	Limit       int32 `json:"limit"`
 }
 
-type FindPostsOfASubredditRow struct {
-	ID          int32                `json:"id"`
-	Title       string               `json:"title"`
-	Content     types.NullRawMessage `json:"content"`
-	SubredditID int32                `json:"subredditId"`
-	AuthorID    int32                `json:"authorId"`
-	CreatedAt   time.Time            `json:"createdAt"`
-	UpdatedAt   time.Time            `json:"updatedAt"`
-	User        User                 `json:"user"`
-	Votes       json.RawMessage      `json:"votes"`
-	Comments    json.RawMessage      `json:"comments"`
+type FindPostsOfSubredditWithAuthorRow struct {
+	Post Post `json:"post"`
+	User User `json:"user"`
 }
 
-func (q *Queries) FindPostsOfASubreddit(ctx context.Context, arg FindPostsOfASubredditParams) ([]FindPostsOfASubredditRow, error) {
-	rows, err := q.db.QueryContext(ctx, findPostsOfASubreddit, arg.SubredditID, arg.Offset, arg.Limit)
+func (q *Queries) FindPostsOfSubredditWithAuthor(ctx context.Context, arg FindPostsOfSubredditWithAuthorParams) ([]FindPostsOfSubredditWithAuthorRow, error) {
+	rows, err := q.db.QueryContext(ctx, findPostsOfSubredditWithAuthor, arg.SubredditID, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []FindPostsOfASubredditRow
+	var items []FindPostsOfSubredditWithAuthorRow
 	for rows.Next() {
-		var i FindPostsOfASubredditRow
+		var i FindPostsOfSubredditWithAuthorRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Content,
-			&i.SubredditID,
-			&i.AuthorID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Post.ID,
+			&i.Post.Title,
+			&i.Post.Content,
+			&i.Post.SubredditID,
+			&i.Post.AuthorID,
+			&i.Post.CreatedAt,
+			&i.Post.UpdatedAt,
 			&i.User.ID,
 			&i.User.Name,
 			&i.User.Email,
@@ -72,8 +56,6 @@ func (q *Queries) FindPostsOfASubreddit(ctx context.Context, arg FindPostsOfASub
 			&i.User.Image,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
-			&i.Votes,
-			&i.Comments,
 		); err != nil {
 			return nil, err
 		}

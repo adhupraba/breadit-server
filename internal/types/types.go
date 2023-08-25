@@ -2,6 +2,7 @@ package types
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"reflect"
 
@@ -11,6 +12,10 @@ import (
 type Json map[string]any
 
 type NullInt32 sql.NullInt32
+
+type NullString sql.NullString
+
+type NullRawMessage pqtype.NullRawMessage
 
 // Scan implements the Scanner interface for NullInt32
 func (ni *NullInt32) Scan(value interface{}) error {
@@ -27,6 +32,14 @@ func (ni *NullInt32) Scan(value interface{}) error {
 	}
 
 	return nil
+}
+
+func (ni NullInt32) Value() (driver.Value, error) {
+	if !ni.Valid {
+		return nil, nil
+	}
+
+	return int64(ni.Int32), nil
 }
 
 // MarshalJSON for NullInt32
@@ -46,7 +59,6 @@ func (ni *NullInt32) UnmarshalJSON(b []byte) error {
 }
 
 // NullString is an alias for sql.NullString data type
-type NullString sql.NullString
 
 // Scan implements the Scanner interface for NullString
 func (ns *NullString) Scan(value interface{}) error {
@@ -63,6 +75,14 @@ func (ns *NullString) Scan(value interface{}) error {
 	}
 
 	return nil
+}
+
+func (ns NullString) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+
+	return ns.String, nil
 }
 
 // MarshalJSON for NullString
@@ -82,8 +102,6 @@ func (ns *NullString) UnmarshalJSON(b []byte) error {
 }
 
 // ----------------------------------
-
-type NullRawMessage pqtype.NullRawMessage
 
 // Scan implements the Scanner interface for NullRawMessage
 func (ni *NullRawMessage) Scan(value interface{}) error {
@@ -116,4 +134,11 @@ func (ni *NullRawMessage) UnmarshalJSON(b []byte) error {
 	err := json.Unmarshal(b, &ni.RawMessage)
 	ni.Valid = (err == nil)
 	return err
+}
+
+func (ni NullRawMessage) Value() (driver.Value, error) {
+	if !ni.Valid {
+		return nil, nil
+	}
+	return []byte(ni.RawMessage), nil
 }

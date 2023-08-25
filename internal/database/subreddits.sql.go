@@ -49,3 +49,25 @@ func (q *Queries) FindSubredditByName(ctx context.Context, name string) (Subredd
 	)
 	return i, err
 }
+
+const findSubredditOfCreator = `-- name: FindSubredditOfCreator :one
+SELECT id, name, creator_id, created_at, updated_at FROM subreddits WHERE id = $1 AND creator_id = $2
+`
+
+type FindSubredditOfCreatorParams struct {
+	ID        int32           `json:"id"`
+	CreatorID types.NullInt32 `json:"creatorId"`
+}
+
+func (q *Queries) FindSubredditOfCreator(ctx context.Context, arg FindSubredditOfCreatorParams) (Subreddit, error) {
+	row := q.db.QueryRowContext(ctx, findSubredditOfCreator, arg.ID, arg.CreatorID)
+	var i Subreddit
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/adhupraba/breadit-server/internal/database"
+	"github.com/adhupraba/breadit-server/internal/helpers"
 	"github.com/adhupraba/breadit-server/internal/types"
 	"github.com/adhupraba/breadit-server/lib"
 	"github.com/adhupraba/breadit-server/utils"
@@ -65,78 +65,15 @@ func (sc *SubredditController) CreateSubreddit(w http.ResponseWriter, r *http.Re
 	utils.RespondWithJson(w, http.StatusCreated, subreddit)
 }
 
-func (sc *SubredditController) GetSubredditDataWithErrors(w http.ResponseWriter, r *http.Request) {
+func (sc *SubredditController) GetSubredditDataWithPosts(w http.ResponseWriter, r *http.Request) {
 	subredditName := chi.URLParam(r, "name")
 
-	subreddit, err := lib.DB.FindSubredditByName(r.Context(), subredditName)
+	data, err, errCode := helpers.GetSubredditWithPosts(r.Context(), subredditName)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusNotFound, "Subreddit not found.")
+		utils.RespondWithError(w, errCode, err.Error())
 		return
 	}
 
-	posts, err := lib.DB.FindPostsOfASubreddit(r.Context(), database.FindPostsOfASubredditParams{
-		SubredditID: subreddit.ID,
-		Offset:      0,
-		Limit:       10,
-	})
-
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, "Error fetching posts from the subreddit.")
-		return
-	}
-
-	type postWithData struct {
-		database.Post
-		Author   database.User      `json:"author"`
-		Votes    []database.Vote    `json:"votes,omitempty"`
-		Comments []database.Comment `json:"comments,omitempty"`
-	}
-
-	var postsData []postWithData
-
-	for _, data := range posts {
-		var votes []database.Vote
-		var comments []database.Comment
-
-		fmt.Printf("votes %v\n", votes)
-
-		json.Unmarshal(data.Votes, &votes)
-		json.Unmarshal(data.Comments, &comments)
-
-		postsData = append(postsData, postWithData{
-			database.Post{
-				ID:          data.ID,
-				Title:       data.Title,
-				Content:     data.Content,
-				SubredditID: data.SubredditID,
-				AuthorID:    data.AuthorID,
-				CreatedAt:   data.CreatedAt,
-				UpdatedAt:   data.UpdatedAt,
-			},
-			data.User,
-			votes,
-			comments,
-		})
-	}
-
-	type response struct {
-		database.Subreddit
-		Posts []postWithData `json:"posts"`
-	}
-
-	utils.RespondWithJson(w, http.StatusOK, response{
-		subreddit,
-		postsData,
-	})
-
-	// type response struct {
-	// 	database.Subreddit
-	// 	Posts []database.FindPostsOfASubredditRow `json:"posts"`
-	// }
-
-	// utils.RespondWithJson(w, http.StatusOK, response{
-	// 	subreddit,
-	// 	posts,
-	// })
+	utils.RespondWithJson(w, http.StatusOK, data)
 }

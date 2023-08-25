@@ -15,7 +15,7 @@ func AuthMiddleware(handler NextFunc) http.HandlerFunc {
 		cookie, err := r.Cookie("access_token")
 
 		if err != nil {
-			fmt.Println("Could not get access token")
+			fmt.Println(r.URL, "Could not get access token =>", err.Error())
 			utils.RespondWithError(w, http.StatusUnauthorized, "Unauthorized access")
 			return
 		}

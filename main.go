@@ -45,6 +45,8 @@ func main() {
 	apiRouter.Mount("/auth", routes.GetAuthRoutes())
 	apiRouter.Mount("/subreddit", routes.GetSubredditRoutes())
 	apiRouter.Mount("/subscription", routes.GetSubscriptionRoutes())
+	apiRouter.Mount("/post", routes.GetPostRoutes())
+	apiRouter.Mount("/utils", routes.GetUtilsRoutes())
 
 	router.Mount("/api", apiRouter)
 

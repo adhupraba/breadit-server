@@ -4,21 +4,36 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/adhupraba/breadit-server/internal/types"
 )
+
+type response struct {
+	Error bool        `json:"error"`
+	Data  interface{} `json:"data"`
+}
 
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
 	if code > 499 {
 		log.Println("Responding with 5xx error:", msg)
 	}
 
-	type errorResponse struct {
-		Message string `json:"message"`
-	}
-
-	RespondWithJson(w, code, errorResponse{Message: msg})
+	RespondWithJson(w, code, types.Json{"message": msg})
 }
 
 func RespondWithJson(w http.ResponseWriter, code int, payload interface{}) {
+	isError := false
+
+	if code >= 400 && code < 600 {
+		isError = true
+	}
+
+	jsonRes := response{Error: isError, Data: payload}
+
+	RespondWithJsonDirect(w, code, jsonRes)
+}
+
+func RespondWithJsonDirect(w http.ResponseWriter, code int, payload interface{}) {
 	data, err := json.Marshal(payload)
 
 	if err != nil {

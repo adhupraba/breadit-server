@@ -16,8 +16,8 @@ INSERT INTO subreddits (name, creator_id) VALUES ($1, $2) RETURNING id, name, cr
 `
 
 type CreateSubredditParams struct {
-	Name      string          `json:"name"`
-	CreatorID types.NullInt32 `json:"creatorId"`
+	Name      string          `db:"name" json:"name"`
+	CreatorID types.NullInt32 `db:"creator_id" json:"creatorId"`
 }
 
 func (q *Queries) CreateSubreddit(ctx context.Context, arg CreateSubredditParams) (Subreddit, error) {
@@ -55,8 +55,8 @@ SELECT id, name, creator_id, created_at, updated_at FROM subreddits WHERE id = $
 `
 
 type FindSubredditOfCreatorParams struct {
-	ID        int32           `json:"id"`
-	CreatorID types.NullInt32 `json:"creatorId"`
+	ID        int32           `db:"id" json:"id"`
+	CreatorID types.NullInt32 `db:"creator_id" json:"creatorId"`
 }
 
 func (q *Queries) FindSubredditOfCreator(ctx context.Context, arg FindSubredditOfCreatorParams) (Subreddit, error) {

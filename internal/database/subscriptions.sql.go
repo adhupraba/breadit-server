@@ -14,8 +14,8 @@ INSERT INTO subscriptions (user_id, subreddit_id) VALUES ($1, $2) RETURNING id, 
 `
 
 type CreateSubscriptionParams struct {
-	UserID      int32 `json:"userId"`
-	SubredditID int32 `json:"subredditId"`
+	UserID      int32 `db:"user_id" json:"userId"`
+	SubredditID int32 `db:"subreddit_id" json:"subredditId"`
 }
 
 func (q *Queries) CreateSubscription(ctx context.Context, arg CreateSubscriptionParams) (Subscription, error) {
@@ -47,8 +47,8 @@ SELECT id, user_id, subreddit_id, created_at, updated_at FROM subscriptions WHER
 `
 
 type FindUserSubscriptionParams struct {
-	UserID      int32 `json:"userId"`
-	SubredditID int32 `json:"subredditId"`
+	UserID      int32 `db:"user_id" json:"userId"`
+	SubredditID int32 `db:"subreddit_id" json:"subredditId"`
 }
 
 func (q *Queries) FindUserSubscription(ctx context.Context, arg FindUserSubscriptionParams) (Subscription, error) {
@@ -78,8 +78,8 @@ DELETE FROM subscriptions WHERE user_id = $1 AND subreddit_id = $2
 `
 
 type UnsubscribeFromASubredditParams struct {
-	UserID      int32 `json:"userId"`
-	SubredditID int32 `json:"subredditId"`
+	UserID      int32 `db:"user_id" json:"userId"`
+	SubredditID int32 `db:"subreddit_id" json:"subredditId"`
 }
 
 func (q *Queries) UnsubscribeFromASubreddit(ctx context.Context, arg UnsubscribeFromASubredditParams) error {

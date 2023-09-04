@@ -11,9 +11,10 @@ import (
 
 type PostWithData struct {
 	database.Post
-	Author   database.User      `json:"author"`
-	Votes    []database.Vote    `json:"votes"`
-	Comments []database.Comment `json:"comments"`
+	Author    database.User      `json:"author"`
+	Votes     []database.Vote    `json:"votes"`
+	Comments  []database.Comment `json:"comments"`
+	Subreddit database.Subreddit `json:"subreddit"`
 }
 
 type SubredditWithPosts struct {
@@ -84,23 +85,24 @@ func GetSubredditWithPosts(ctx context.Context, subredditName string) (data Subr
 		vp := votesOfPosts[post.Post.ID]
 		cp := commentsOfPosts[post.Post.ID]
 
-		var votes []database.Vote = make([]database.Vote, len(vp))
+		votes := make([]database.Vote, len(vp))
 
 		if len(vp) != 0 {
 			votes = vp
 		}
 
-		var comments []database.Comment = make([]database.Comment, len(cp))
+		comments := make([]database.Comment, len(cp))
 
 		if len(cp) != 0 {
 			comments = cp
 		}
 
 		postWithData := PostWithData{
-			Post:     post.Post,
-			Author:   post.User,
-			Votes:    votes,
-			Comments: comments,
+			Post:      post.Post,
+			Author:    post.User,
+			Votes:     votes,
+			Comments:  comments,
+			Subreddit: subreddit,
 		}
 
 		postsWithData = append(postsWithData, postWithData)

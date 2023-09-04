@@ -7,7 +7,85 @@ package database
 
 import (
 	"context"
+	"encoding/json"
+
+	"github.com/adhupraba/breadit-server/internal/types"
 )
+
+const createPost = `-- name: CreatePost :one
+INSERT INTO posts (title, content, subreddit_id, author_id)
+VALUES ($1, $2, $3, $4)
+RETURNING id, title, content, subreddit_id, author_id, created_at, updated_at
+`
+
+type CreatePostParams struct {
+	Title       string               `db:"title" json:"title"`
+	Content     types.NullRawMessage `db:"content" json:"content"`
+	SubredditID int32                `db:"subreddit_id" json:"subredditId"`
+	AuthorID    int32                `db:"author_id" json:"authorId"`
+}
+
+func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
+	row := q.db.QueryRowContext(ctx, createPost,
+		arg.Title,
+		arg.Content,
+		arg.SubredditID,
+		arg.AuthorID,
+	)
+	var i Post
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Content,
+		&i.SubredditID,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findPostWithAuthorAndVotes = `-- name: FindPostWithAuthorAndVotes :one
+SELECT
+  posts.id, posts.title, posts.content, posts.subreddit_id, posts.author_id, posts.created_at, posts.updated_at,
+  users.id, users.name, users.email, users.username, users.password, users.image, users.created_at, users.updated_at,
+  JSON_AGG(votes.*) AS votes
+FROM posts
+  INNER JOIN users ON users.id = posts.author_id
+  LEFT JOIN votes ON votes.post_id = posts.id
+WHERE posts.id = $1
+GROUP BY posts.id, users.id
+`
+
+type FindPostWithAuthorAndVotesRow struct {
+	Post  Post            `db:"post" json:"post"`
+	User  User            `db:"user" json:"user"`
+	Votes json.RawMessage `db:"votes" json:"votes"`
+}
+
+func (q *Queries) FindPostWithAuthorAndVotes(ctx context.Context, id int32) (FindPostWithAuthorAndVotesRow, error) {
+	row := q.db.QueryRowContext(ctx, findPostWithAuthorAndVotes, id)
+	var i FindPostWithAuthorAndVotesRow
+	err := row.Scan(
+		&i.Post.ID,
+		&i.Post.Title,
+		&i.Post.Content,
+		&i.Post.SubredditID,
+		&i.Post.AuthorID,
+		&i.Post.CreatedAt,
+		&i.Post.UpdatedAt,
+		&i.User.ID,
+		&i.User.Name,
+		&i.User.Email,
+		&i.User.Username,
+		&i.User.Password,
+		&i.User.Image,
+		&i.User.CreatedAt,
+		&i.User.UpdatedAt,
+		&i.Votes,
+	)
+	return i, err
+}
 
 const findPostsOfSubredditWithAuthor = `-- name: FindPostsOfSubredditWithAuthor :many
 SELECT
@@ -21,14 +99,14 @@ OFFSET $2 LIMIT $3
 `
 
 type FindPostsOfSubredditWithAuthorParams struct {
-	SubredditID int32 `json:"subredditId"`
-	Offset      int32 `json:"offset"`
-	Limit       int32 `json:"limit"`
+	SubredditID int32 `db:"subreddit_id" json:"subredditId"`
+	Offset      int32 `db:"offset" json:"offset"`
+	Limit       int32 `db:"limit" json:"limit"`
 }
 
 type FindPostsOfSubredditWithAuthorRow struct {
-	Post Post `json:"post"`
-	User User `json:"user"`
+	Post Post `db:"post" json:"post"`
+	User User `db:"user" json:"user"`
 }
 
 func (q *Queries) FindPostsOfSubredditWithAuthor(ctx context.Context, arg FindPostsOfSubredditWithAuthorParams) ([]FindPostsOfSubredditWithAuthorRow, error) {

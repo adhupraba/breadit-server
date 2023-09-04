@@ -17,11 +17,11 @@ import (
 type SubscriptionController struct{}
 
 type subscribeToSubredditBody struct {
-	SubredditId int32 `json:"subredditId" validate:"required,numeric"`
+	SubredditId int32 `json:"subredditId" validate:"required,gt=0"`
 }
 
 type unsubscribeFromSubredditBody struct {
-	SubredditId int32 `json:"subredditId" validate:"required,numeric"`
+	SubredditId int32 `json:"subredditId" validate:"required,gt=0"`
 }
 
 func (sc *SubscriptionController) GetSubredditSubscription(w http.ResponseWriter, r *http.Request, user database.User) {

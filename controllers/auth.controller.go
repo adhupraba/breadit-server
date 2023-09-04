@@ -202,6 +202,7 @@ func getAccessToken(user database.User, w http.ResponseWriter, r *http.Request) 
 		MaxAge:   int(constants.AccessTokenTTL) / int(time.Second),
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
+		Path:     "/",
 	})
 
 	return accessToken, nil
@@ -228,6 +229,7 @@ func getRefreshToken(user database.User, w http.ResponseWriter, r *http.Request)
 		MaxAge:   int(constants.RefreshTokenTTL) / int(time.Second),
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
+		Path:     "/",
 	})
 
 	return refreshToken, nil
@@ -241,6 +243,7 @@ func setLoggedInCookie(w http.ResponseWriter) {
 		MaxAge:   int(constants.AccessTokenTTL) / int(time.Second),
 		HttpOnly: false,
 		Secure:   constants.UseSecureCookies,
+		Path:     "/",
 	})
 }
 
@@ -254,6 +257,7 @@ func clearCookies(w http.ResponseWriter) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
+		Path:     "/",
 	})
 
 	http.SetCookie(w, &http.Cookie{
@@ -263,6 +267,7 @@ func clearCookies(w http.ResponseWriter) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
+		Path:     "/",
 	})
 
 	http.SetCookie(w, &http.Cookie{
@@ -272,5 +277,6 @@ func clearCookies(w http.ResponseWriter) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
+		Path:     "/",
 	})
 }

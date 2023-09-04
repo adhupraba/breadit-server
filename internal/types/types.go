@@ -126,6 +126,15 @@ func (ni NullRawMessage) MarshalJSON() ([]byte, error) {
 		return json.Marshal(nil)
 	}
 
+	// var b any
+	// err := json.Unmarshal([]byte(ni.RawMessage), &b)
+
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return json.Marshal(b)
+
 	return json.Marshal(ni.RawMessage)
 }
 

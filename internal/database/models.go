@@ -55,66 +55,66 @@ func (ns NullVoteType) Value() (driver.Value, error) {
 }
 
 type Comment struct {
-	ID        int32           `json:"id"`
-	Text      string          `json:"text"`
-	PostID    int32           `json:"postId"`
-	AuthorID  int32           `json:"authorId"`
-	ReplyToID types.NullInt32 `json:"replyToId"`
-	CreatedAt time.Time       `json:"createdAt"`
-	UpdatedAt time.Time       `json:"updatedAt"`
+	ID        int32           `db:"id" json:"id"`
+	Text      string          `db:"text" json:"text"`
+	PostID    int32           `db:"post_id" json:"postId"`
+	AuthorID  int32           `db:"author_id" json:"authorId"`
+	ReplyToID types.NullInt32 `db:"reply_to_id" json:"replyToId"`
+	CreatedAt time.Time       `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time       `db:"updated_at" json:"updatedAt"`
 }
 
 type CommentVote struct {
-	ID        int32     `json:"id"`
-	CommentID int32     `json:"commentId"`
-	UserID    int32     `json:"userId"`
-	Type      VoteType  `json:"type"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        int32     `db:"id" json:"id"`
+	CommentID int32     `db:"comment_id" json:"commentId"`
+	UserID    int32     `db:"user_id" json:"userId"`
+	Type      VoteType  `db:"type" json:"type"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
 
 type Post struct {
-	ID          int32                `json:"id"`
-	Title       string               `json:"title"`
-	Content     types.NullRawMessage `json:"content"`
-	SubredditID int32                `json:"subredditId"`
-	AuthorID    int32                `json:"authorId"`
-	CreatedAt   time.Time            `json:"createdAt"`
-	UpdatedAt   time.Time            `json:"updatedAt"`
+	ID          int32                `db:"id" json:"id"`
+	Title       string               `db:"title" json:"title"`
+	Content     types.NullRawMessage `db:"content" json:"content"`
+	SubredditID int32                `db:"subreddit_id" json:"subredditId"`
+	AuthorID    int32                `db:"author_id" json:"authorId"`
+	CreatedAt   time.Time            `db:"created_at" json:"createdAt"`
+	UpdatedAt   time.Time            `db:"updated_at" json:"updatedAt"`
 }
 
 type Subreddit struct {
-	ID        int32           `json:"id"`
-	Name      string          `json:"name"`
-	CreatorID types.NullInt32 `json:"creatorId"`
-	CreatedAt time.Time       `json:"createdAt"`
-	UpdatedAt time.Time       `json:"updatedAt"`
+	ID        int32           `db:"id" json:"id"`
+	Name      string          `db:"name" json:"name"`
+	CreatorID types.NullInt32 `db:"creator_id" json:"creatorId"`
+	CreatedAt time.Time       `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time       `db:"updated_at" json:"updatedAt"`
 }
 
 type Subscription struct {
-	ID          int32     `json:"id"`
-	UserID      int32     `json:"userId"`
-	SubredditID int32     `json:"subredditId"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID          int32     `db:"id" json:"id"`
+	UserID      int32     `db:"user_id" json:"userId"`
+	SubredditID int32     `db:"subreddit_id" json:"subredditId"`
+	CreatedAt   time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updatedAt"`
 }
 
 type User struct {
-	ID        int32            `json:"id"`
-	Name      string           `json:"name"`
-	Email     string           `json:"email"`
-	Username  string           `json:"username"`
-	Password  string           `json:"-"`
-	Image     types.NullString `json:"image"`
-	CreatedAt time.Time        `json:"createdAt"`
-	UpdatedAt time.Time        `json:"updatedAt"`
+	ID        int32            `db:"id" json:"id"`
+	Name      string           `db:"name" json:"name"`
+	Email     string           `db:"email" json:"email"`
+	Username  string           `db:"username" json:"username"`
+	Password  string           `db:"password" json:"-"`
+	Image     types.NullString `db:"image" json:"image"`
+	CreatedAt time.Time        `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time        `db:"updated_at" json:"updatedAt"`
 }
 
 type Vote struct {
-	ID        int32     `json:"id"`
-	PostID    int32     `json:"postId"`
-	UserID    int32     `json:"userId"`
-	Type      VoteType  `json:"type"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID        int32     `db:"id" json:"id"`
+	PostID    int32     `db:"post_id" json:"postId"`
+	UserID    int32     `db:"user_id" json:"userId"`
+	Type      VoteType  `db:"type" json:"type"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }

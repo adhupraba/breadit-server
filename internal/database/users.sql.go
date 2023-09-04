@@ -18,11 +18,11 @@ RETURNING id, name, email, username, password, image, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	Name     string           `json:"name"`
-	Email    string           `json:"email"`
-	Username string           `json:"username"`
-	Password string           `json:"-"`
-	Image    types.NullString `json:"image"`
+	Name     string           `db:"name" json:"name"`
+	Email    string           `db:"email" json:"email"`
+	Username string           `db:"username" json:"username"`
+	Password string           `db:"password" json:"-"`
+	Image    types.NullString `db:"image" json:"image"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {

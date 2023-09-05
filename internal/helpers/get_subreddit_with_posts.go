@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/adhupraba/breadit-server/constants"
 	"github.com/adhupraba/breadit-server/internal/database"
+	rawmessageparser "github.com/adhupraba/breadit-server/internal/helpers/raw_message_parser"
 	"github.com/adhupraba/breadit-server/lib"
 )
 
@@ -40,72 +42,17 @@ func GetSubredditWithPosts(ctx context.Context, subredditName string) (data Subr
 		return SubredditWithPosts{}, fmt.Errorf("Error when calculating the subscribers count."), http.StatusInternalServerError
 	}
 
-	posts, err := lib.DB.FindPostsOfSubredditWithAuthor(ctx, database.FindPostsOfSubredditWithAuthorParams{
-		SubredditID: subreddit.ID,
-		Offset:      0,
-		Limit:       10,
-	})
+	params := database.FindPostsOfSubredditParams{
+		Offset:        0,
+		Limit:         constants.InfiniteScrollPaginationResults,
+		SubredditName: subredditName,
+	}
+	// fmt.Printf("GetSubredditWithPosts db params => %#v\n", params)
+
+	postsWithData, err, errCode := GetPostsOfSubreddit(ctx, params)
 
 	if err != nil {
-		return SubredditWithPosts{}, fmt.Errorf("Error while fetching posts of the subreddit."), http.StatusInternalServerError
-	}
-
-	postIds := []int32{}
-	for _, post := range posts {
-		postIds = append(postIds, post.Post.ID)
-	}
-
-	comments, err := lib.DB.FindCommentsOfPosts(ctx, postIds)
-
-	if err != nil {
-		return SubredditWithPosts{}, fmt.Errorf("Error while fetching comments of the posts."), http.StatusInternalServerError
-	}
-
-	votes, err := lib.DB.FindVotesOfPosts(ctx, postIds)
-
-	if err != nil {
-		return SubredditWithPosts{}, fmt.Errorf("Error while fetching votes of the posts."), http.StatusInternalServerError
-	}
-
-	commentsOfPosts := make(map[int32][]database.Comment)
-
-	for _, comment := range comments {
-		commentsOfPosts[comment.PostID] = append(commentsOfPosts[comment.PostID], comment)
-	}
-
-	votesOfPosts := make(map[int32][]database.Vote)
-
-	for _, vote := range votes {
-		votesOfPosts[vote.PostID] = append(votesOfPosts[vote.PostID], vote)
-	}
-
-	var postsWithData []PostWithData
-
-	for _, post := range posts {
-		vp := votesOfPosts[post.Post.ID]
-		cp := commentsOfPosts[post.Post.ID]
-
-		votes := make([]database.Vote, len(vp))
-
-		if len(vp) != 0 {
-			votes = vp
-		}
-
-		comments := make([]database.Comment, len(cp))
-
-		if len(cp) != 0 {
-			comments = cp
-		}
-
-		postWithData := PostWithData{
-			Post:      post.Post,
-			Author:    post.User,
-			Votes:     votes,
-			Comments:  comments,
-			Subreddit: subreddit,
-		}
-
-		postsWithData = append(postsWithData, postWithData)
+		return SubredditWithPosts{}, err, errCode
 	}
 
 	subredditWithPosts := SubredditWithPosts{
@@ -115,4 +62,41 @@ func GetSubredditWithPosts(ctx context.Context, subredditName string) (data Subr
 	}
 
 	return subredditWithPosts, nil, 0
+}
+
+func GetPostsOfSubreddit(ctx context.Context, params database.FindPostsOfSubredditParams) (data []PostWithData, err error, errCode int) {
+	posts, err := lib.DB.FindPostsOfSubreddit(ctx, params)
+
+	if err != nil {
+		fmt.Println("error getting posts of subreddit =>", err)
+		return []PostWithData{}, fmt.Errorf("Error while fetching posts of the subreddit."), http.StatusInternalServerError
+	}
+
+	var postsWithData []PostWithData
+
+	for _, post := range posts {
+		votes, err := rawmessageparser.ParseJsonVotes(post.Votes)
+
+		if err != nil {
+			return data, err, http.StatusInternalServerError
+		}
+
+		comments, err := rawmessageparser.ParseJsonComments(post.Comments)
+
+		if err != nil {
+			return data, err, http.StatusInternalServerError
+		}
+
+		postWithData := PostWithData{
+			Post:      post.Post,
+			Author:    post.User,
+			Votes:     votes,
+			Comments:  comments,
+			Subreddit: post.Subreddit,
+		}
+
+		postsWithData = append(postsWithData, postWithData)
+	}
+
+	return postsWithData, nil, 0
 }

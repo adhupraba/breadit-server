@@ -2,7 +2,7 @@ package transformer
 
 import (
 	"github.com/adhupraba/breadit-server/internal/database"
-	jsonrawmessageparser "github.com/adhupraba/breadit-server/internal/helpers/json_raw_message_parser"
+	rawmessageparser "github.com/adhupraba/breadit-server/internal/helpers/raw_message_parser"
 )
 
 type PostWithAuthorAndVotes struct {
@@ -12,7 +12,7 @@ type PostWithAuthorAndVotes struct {
 }
 
 func TransformPostWithAuthorAndVotes(post database.FindPostWithAuthorAndVotesRow) (PostWithAuthorAndVotes, error) {
-	votes, err := jsonrawmessageparser.ParseJsonVotes(post.Votes)
+	votes, err := rawmessageparser.ParseJsonVotes(post.Votes)
 
 	if err != nil {
 		return PostWithAuthorAndVotes{}, err

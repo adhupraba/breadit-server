@@ -1,12 +1,43 @@
--- name: FindPostsOfSubredditWithAuthor :many
+-- name: FindPostsOfSubreddit :many
+WITH vars (subreddit_name, is_authenticated, subreddit_ids, subreddit_id) AS (
+	VALUES (
+    sqlc.arg(subreddit_name)::TEXT,
+    sqlc.arg(is_authenticated)::BOOL,
+    sqlc.slice(subreddit_ids)::INT[],
+    sqlc.arg(subreddit_id)::INT
+  )
+)
 SELECT
   sqlc.embed(posts),
-  sqlc.embed(users)
+  sqlc.embed(users),
+  sqlc.embed(subreddits),
+  TO_JSON(ARRAY_AGG(DISTINCT votes.*)) AS votes,
+  TO_JSON(ARRAY_AGG(DISTINCT comments.*)) AS comments
 FROM posts
   INNER JOIN users ON users.id = posts.author_id
-WHERE posts.subreddit_id = $1
-GROUP BY posts.id, users.id
-OFFSET $2 LIMIT $3;
+  INNER JOIN subreddits ON subreddits.id = posts.subreddit_id
+  LEFT JOIN votes ON votes.post_id = posts.id
+  LEFT JOIN comments ON comments.post_id = posts.id,
+  vars
+WHERE (
+  CASE
+    WHEN
+      vars.subreddit_name IS NOT NULL AND
+      LENGTH(vars.subreddit_name) > 0 AND
+      subreddits.name = vars.subreddit_name
+      THEN TRUE
+    WHEN vars.is_authenticated AND ARRAY_LENGTH(vars.subreddit_ids, 1) > 0
+      THEN subreddits.id = ANY(vars.subreddit_ids)
+    WHEN
+      vars.subreddit_id IS NOT NULL AND
+      vars.subreddit_id > 0 AND
+      posts.subreddit_id = vars.subreddit_id
+      THEN TRUE
+  END
+)
+GROUP BY posts.id, users.id, subreddits.id
+ORDER BY posts.created_at DESC
+OFFSET sqlc.arg('offset') LIMIT sqlc.arg('limit');
 
 -- name: CreatePost :one
 INSERT INTO posts (title, content, subreddit_id, author_id)

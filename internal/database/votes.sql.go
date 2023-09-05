@@ -128,6 +128,15 @@ func (q *Queries) FindVotesOfPosts(ctx context.Context, dollar_1 []int32) ([]Vot
 	return items, nil
 }
 
+const removeVote = `-- name: RemoveVote :exec
+DELETE FROM votes WHERE id = $1
+`
+
+func (q *Queries) RemoveVote(ctx context.Context, id int32) error {
+	_, err := q.db.ExecContext(ctx, removeVote, id)
+	return err
+}
+
 const updateVote = `-- name: UpdateVote :exec
 UPDATE votes SET type = $1 WHERE id = $2
 `

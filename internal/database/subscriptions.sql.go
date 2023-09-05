@@ -31,6 +31,39 @@ func (q *Queries) CreateSubscription(ctx context.Context, arg CreateSubscription
 	return i, err
 }
 
+const findAllSubscriptionsOfUser = `-- name: FindAllSubscriptionsOfUser :many
+SELECT id, user_id, subreddit_id, created_at, updated_at FROM subscriptions WHERE user_id = $1
+`
+
+func (q *Queries) FindAllSubscriptionsOfUser(ctx context.Context, userID int32) ([]Subscription, error) {
+	rows, err := q.db.QueryContext(ctx, findAllSubscriptionsOfUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Subscription
+	for rows.Next() {
+		var i Subscription
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.SubredditID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findSubscriptionCountOfSubreddit = `-- name: FindSubscriptionCountOfSubreddit :one
 SELECT COUNT(*) FROM subscriptions WHERE subreddit_id = $1
 `

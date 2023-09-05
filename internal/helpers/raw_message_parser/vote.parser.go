@@ -1,8 +1,7 @@
-package jsonrawmessageparser
+package rawmessageparser
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/adhupraba/breadit-server/internal/database"
@@ -34,7 +33,7 @@ func ParseJsonVotes(data json.RawMessage) ([]database.Vote, error) {
 	votes := []database.Vote{}
 
 	for _, vote := range parsed {
-		if int32(vote["id"].(float64)) == 0 {
+		if vote == nil || int32(vote["id"].(float64)) == 0 {
 			continue
 		}
 
@@ -46,8 +45,6 @@ func ParseJsonVotes(data json.RawMessage) ([]database.Vote, error) {
 
 		votes = append(votes, dbVote)
 	}
-
-	fmt.Printf("filtered votes => %#v\n", votes)
 
 	return votes, nil
 }

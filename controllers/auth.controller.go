@@ -119,6 +119,7 @@ func (ac *AuthController) Signin(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := getAccessToken(user, w, r)
 
 	if err != nil {
+		fmt.Println("signin access token error =>", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -126,6 +127,7 @@ func (ac *AuthController) Signin(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := getRefreshToken(user, w, r)
 
 	if err != nil {
+		fmt.Println("signin refresh token error =>", err)
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -212,13 +214,14 @@ func getRefreshToken(user database.User, w http.ResponseWriter, r *http.Request)
 	refreshToken, err := utils.SignJwtToken(strconv.Itoa(int(user.ID)), time.Now().Add(constants.AccessTokenTTL).Unix())
 
 	if err != nil {
+		fmt.Println("sign refresh token error =>", err)
 		return "", err
 	}
 
-	// ignore the redis error
 	err = lib.Redis.Set(r.Context(), refreshToken, user.ID, constants.RefreshTokenTTL).Err()
 
 	if err != nil {
+		fmt.Println("set in redis error =>", err)
 		return "", err
 	}
 

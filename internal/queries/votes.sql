@@ -14,3 +14,6 @@ RETURNING *;
 
 -- name: UpdateVote :exec
 UPDATE votes SET type = $1 WHERE id = $2;
+
+-- name: RemoveVote :exec
+DELETE FROM votes WHERE id = $1;

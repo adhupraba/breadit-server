@@ -21,6 +21,7 @@ func (sr *PostRoutes) declarePostRoutes() *chi.Mux {
 
 	postRoute.Post("/create", middlewares.AuthMiddleware(sr.postController.CreatePost))
 	postRoute.Patch("/vote", middlewares.AuthMiddleware(sr.postController.VotePost))
+	postRoute.Get("/posts", sr.postController.GetPaginatedPosts)
 
 	return postRoute
 }

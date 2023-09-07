@@ -24,6 +24,7 @@ func (ar *AuthRoutes) declareAuthRoutes() *chi.Mux {
 	authRoute.Get("/sign-out", ar.authController.LogoutUser)
 	authRoute.Get("/refresh", ar.authController.RefreshAccessToken)
 	authRoute.Get("/get-me", middlewares.AuthMiddleware(ar.authController.GetUser))
+	authRoute.Patch("/username", middlewares.AuthMiddleware(ar.authController.UpdateUsername))
 
 	return authRoute
 }

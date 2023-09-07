@@ -14,16 +14,16 @@ sql:
             go_struct_tag: 'json:"-"'
           - db_type: "pg_catalog.int4"
             go_type:
-              import: "github.com/adhupraba/breadit-server/internal/types"
+              import: "github.com/adhupraba/breadit-server/internal/db_types"
               type: "NullInt32"
             nullable: true
           - db_type: "text"
             go_type:
-              import: "github.com/adhupraba/breadit-server/internal/types"
+              import: "github.com/adhupraba/breadit-server/internal/db_types"
               type: "NullString"
             nullable: true
           - db_type: "jsonb"
             go_type:
-              import: "github.com/adhupraba/breadit-server/internal/types"
+              import: "github.com/adhupraba/breadit-server/internal/db_types"
               type: "NullRawMessage"
             nullable: true

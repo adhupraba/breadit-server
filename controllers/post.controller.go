@@ -1,16 +1,20 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/adhupraba/breadit-server/constants"
 	"github.com/adhupraba/breadit-server/internal/database"
+	"github.com/adhupraba/breadit-server/internal/db_types"
 	"github.com/adhupraba/breadit-server/internal/helpers"
-	"github.com/adhupraba/breadit-server/internal/helpers/transformer"
+	queryhelpers "github.com/adhupraba/breadit-server/internal/helpers/query_helpers"
 	"github.com/adhupraba/breadit-server/internal/types"
 	"github.com/adhupraba/breadit-server/lib"
 	"github.com/adhupraba/breadit-server/utils"
@@ -53,7 +57,7 @@ func (pc *PostController) CreatePost(w http.ResponseWriter, r *http.Request, use
 		return
 	}
 
-	content := types.NullRawMessage{}
+	content := db_types.NullRawMessage{}
 
 	if body.Content != nil {
 		contentJson, err := json.Marshal(body.Content)
@@ -86,22 +90,10 @@ func (pc *PostController) VotePost(w http.ResponseWriter, r *http.Request, user 
 		return
 	}
 
-	post, err := lib.DB.FindPostWithAuthorAndVotes(r.Context(), body.PostId)
-
-	if err != nil && !strings.Contains(err.Error(), "no rows") {
-		utils.RespondWithError(w, http.StatusInternalServerError, "Error when fetching post details")
-		return
-	}
-
-	if post.Post.ID == 0 {
-		utils.RespondWithError(w, http.StatusNotFound, "Post not found")
-		return
-	}
-
-	transformedPost, err := transformer.TransformPostWithAuthorAndVotes(post)
+	post, err, errCode := queryhelpers.FindPostWithAuthorAndVotes(r.Context(), body.PostId)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		utils.RespondWithError(w, errCode, err.Error())
 		return
 	}
 
@@ -111,7 +103,7 @@ func (pc *PostController) VotePost(w http.ResponseWriter, r *http.Request, user 
 	})
 
 	if err != nil && !strings.Contains(err.Error(), "no rows") {
-		utils.RespondWithError(w, http.StatusBadRequest, "Error while voting the post")
+		utils.RespondWithError(w, http.StatusBadRequest, "Error when checking for existing vote on post")
 		return
 	}
 
@@ -119,7 +111,7 @@ func (pc *PostController) VotePost(w http.ResponseWriter, r *http.Request, user 
 	if existingVote.ID != 0 {
 		// existing vote is of the same type, delete the vote
 		if existingVote.Type == body.VoteType {
-			err = lib.DB.RemoveVote(r.Context(), existingVote.ID)
+			err = lib.DB.RemovePostVote(r.Context(), existingVote.ID)
 
 			if err != nil {
 				utils.RespondWithError(w, http.StatusInternalServerError, "Error when removing vote")
@@ -131,7 +123,7 @@ func (pc *PostController) VotePost(w http.ResponseWriter, r *http.Request, user 
 		}
 
 		// existing vote is of different type, update the vote
-		err = lib.DB.UpdateVote(r.Context(), database.UpdateVoteParams{
+		err = lib.DB.UpdatePostVote(r.Context(), database.UpdatePostVoteParams{
 			ID:   existingVote.ID,
 			Type: body.VoteType,
 		})
@@ -141,75 +133,29 @@ func (pc *PostController) VotePost(w http.ResponseWriter, r *http.Request, user 
 			return
 		}
 
-		// recount the votes
-		voteCount := 0
-
-		for _, vote := range transformedPost.Votes {
-			if vote.Type == database.VoteTypeUP {
-				voteCount += 1
-			} else if vote.Type == database.VoteTypeDOWN {
-				voteCount -= 1
-			}
-		}
-
-		if voteCount >= constants.CacheAfterUpvotes {
-			cachePayload := helpers.RedisCachedPost{
-				ID:             transformedPost.ID,
-				Title:          transformedPost.Title,
-				AuthorUsername: transformedPost.Author.Username,
-				Content:        transformedPost.Content,
-				CurrentVote:    database.NullVoteType{VoteType: body.VoteType, Valid: true},
-				CreatedAt:      transformedPost.CreatedAt,
-			}
-
-			key := fmt.Sprintf("post:%d", transformedPost.ID)
-			lib.Redis.HSet(r.Context(), key, cachePayload)
-		}
+		recountVotesAndSaveInRedis(r.Context(), post)
 
 		utils.RespondWithJson(w, http.StatusOK, types.Json{"message": "Successfully updated vote on post"})
 		return
 	}
 
 	// create new vote
-	_, err = lib.DB.CreateVote(r.Context(), database.CreateVoteParams{
+	_, err = lib.DB.CreatePostVote(r.Context(), database.CreatePostVoteParams{
 		PostID: body.PostId,
 		UserID: user.ID,
 		Type:   body.VoteType,
 	})
 
-	// recount the votes
-	voteCount := 0
+	recountVotesAndSaveInRedis(r.Context(), post)
 
-	for _, vote := range transformedPost.Votes {
-		if vote.Type == database.VoteTypeUP {
-			voteCount += 1
-		} else if vote.Type == database.VoteTypeDOWN {
-			voteCount -= 1
-		}
-	}
-
-	if voteCount >= constants.CacheAfterUpvotes {
-		cachePayload := helpers.RedisCachedPost{
-			ID:             transformedPost.ID,
-			Title:          transformedPost.Title,
-			AuthorUsername: transformedPost.Author.Username,
-			Content:        transformedPost.Content,
-			CurrentVote:    database.NullVoteType{VoteType: body.VoteType, Valid: true},
-			CreatedAt:      transformedPost.CreatedAt,
-		}
-
-		key := fmt.Sprintf("post:%d", transformedPost.ID)
-		lib.Redis.HSet(r.Context(), key, cachePayload)
-	}
-
-	utils.RespondWithJson(w, http.StatusCreated, types.Json{"message": "Successfully added vote on post"})
+	utils.RespondWithJson(w, http.StatusCreated, types.Json{"message": "Successfully voted on post"})
 }
 
 func (pc *PostController) GetPaginatedPosts(w http.ResponseWriter, r *http.Request) {
 	type urlSearchParams struct {
-		Limit         int    `validate:"required,number,gt=0"`
-		Page          int    `validate:"required,number,gt=0"`
-		SubredditName string `validate:"min=3"`
+		Limit         int `validate:"required,number,gt=0"`
+		Page          int `validate:"required,number,gte=0"`
+		SubredditName string
 	}
 
 	query := r.URL.Query()
@@ -217,14 +163,14 @@ func (pc *PostController) GetPaginatedPosts(w http.ResponseWriter, r *http.Reque
 	limit, err := strconv.Atoi(query.Get("limit"))
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Recevied invalid limit value")
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Received invalid limit value")
 		return
 	}
 
 	page, err := strconv.Atoi(query.Get("page"))
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Recevied invalid page value")
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Received invalid page value")
 		return
 	}
 
@@ -237,7 +183,8 @@ func (pc *PostController) GetPaginatedPosts(w http.ResponseWriter, r *http.Reque
 	err = lib.Validate.Struct(searchParams)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Recevied invalid ")
+		fmt.Println("search params validation error =>", err)
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Received invalid search params")
 		return
 	}
 
@@ -273,23 +220,91 @@ func (pc *PostController) GetPaginatedPosts(w http.ResponseWriter, r *http.Reque
 	}
 	// fmt.Printf("GetPaginatedPosts db params => %#v\n", params)
 
-	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, "Error getting posts")
-		return
-	}
-
 	// ! postsWithData can be `nil` if data is not found for a given pagination.
 	// ! eg: only 10 posts are there. and now i am requesting 11-15 posts. it will be `nil`
-	postsWithData, err, errCode := helpers.GetPostsOfSubreddit(r.Context(), params)
+	postsWithData, err, errCode := queryhelpers.GetPostsOfSubreddit(r.Context(), params)
 
 	if err != nil {
 		utils.RespondWithError(w, errCode, err.Error())
 		return
 	}
 
-	if postsWithData == nil {
-		postsWithData = []helpers.PostWithData{}
+	utils.RespondWithJson(w, http.StatusOK, postsWithData)
+}
+
+func (pc *PostController) GetPostData(w http.ResponseWriter, r *http.Request) {
+	type response struct {
+		CachedPost *helpers.RedisCachedPost      `json:"cachedPost"`
+		Post       *types.PostWithAuthorAndVotes `json:"post"`
 	}
 
-	utils.RespondWithJson(w, http.StatusOK, postsWithData)
+	id := chi.URLParam(r, "id")
+	postId, err := strconv.Atoi(id)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusBadRequest, "Invalid post id")
+		return
+	}
+
+	isForceFetch := r.URL.Query().Get("force") == "true"
+
+	if !isForceFetch {
+		key := fmt.Sprintf("post:%d", postId)
+		cachedPost, err := helpers.GetPostFromRedis(r.Context(), key)
+
+		if err == nil && cachedPost.ID != 0 {
+			utils.RespondWithJson(w, http.StatusOK, response{CachedPost: &cachedPost, Post: nil})
+			return
+		}
+	}
+
+	post, err, errCode := queryhelpers.FindPostWithAuthorAndVotes(r.Context(), int32(postId))
+
+	if err != nil {
+		utils.RespondWithError(w, errCode, err.Error())
+		return
+	}
+
+	utils.RespondWithJson(w, http.StatusOK, response{CachedPost: nil, Post: &post})
+}
+
+// ! re-usable helpers
+func recountVotesAndSaveInRedis(ctx context.Context, post types.PostWithAuthorAndVotes) {
+	// recount the votes
+	voteCount := 0
+
+	for _, vote := range post.Votes {
+		if vote.Type == database.VoteTypeUP {
+			voteCount += 1
+		} else if vote.Type == database.VoteTypeDOWN {
+			voteCount -= 1
+		}
+	}
+
+	fmt.Println("voteCount", voteCount)
+
+	if voteCount >= constants.CacheAfterUpvotes {
+		cachePayload := helpers.RedisCachedPost{
+			ID:             post.ID,
+			Title:          post.Title,
+			AuthorUsername: post.Author.Username,
+			Content:        post.Content,
+			CreatedAt:      post.CreatedAt,
+		}
+
+		key := fmt.Sprintf("post:%d", post.ID)
+		err := helpers.SavePostInRedis(ctx, key, cachePayload)
+
+		if err != nil {
+			fmt.Println("redis hset error =>", err)
+		}
+
+		// cachedPost, err := helpers.GetPostFromRedis(r.Context(), key)
+
+		// if err != nil {
+		// 	fmt.Println("redis hgetall error =>", err)
+		// }
+
+		// fmt.Printf("cached post from redis => %#v\n", cachedPost)
+	}
 }

@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	AccessTokenTTL                  = time.Minute * 60
-	RefreshTokenTTL                 = time.Minute * 180
+	AccessTokenTTL                  = time.Second * 30
+	RefreshTokenTTL                 = time.Second * 180
 	CacheAfterUpvotes               = 1
 	InfiniteScrollPaginationResults = 2
 )

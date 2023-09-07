@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/adhupraba/breadit-server/internal/types"
+	"github.com/adhupraba/breadit-server/internal/db_types"
 )
 
 type VoteType string
@@ -55,13 +55,13 @@ func (ns NullVoteType) Value() (driver.Value, error) {
 }
 
 type Comment struct {
-	ID        int32           `db:"id" json:"id"`
-	Text      string          `db:"text" json:"text"`
-	PostID    int32           `db:"post_id" json:"postId"`
-	AuthorID  int32           `db:"author_id" json:"authorId"`
-	ReplyToID types.NullInt32 `db:"reply_to_id" json:"replyToId"`
-	CreatedAt time.Time       `db:"created_at" json:"createdAt"`
-	UpdatedAt time.Time       `db:"updated_at" json:"updatedAt"`
+	ID        int32              `db:"id" json:"id"`
+	Text      string             `db:"text" json:"text"`
+	PostID    int32              `db:"post_id" json:"postId"`
+	AuthorID  int32              `db:"author_id" json:"authorId"`
+	ReplyToID db_types.NullInt32 `db:"reply_to_id" json:"replyToId"`
+	CreatedAt time.Time          `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time          `db:"updated_at" json:"updatedAt"`
 }
 
 type CommentVote struct {
@@ -74,21 +74,21 @@ type CommentVote struct {
 }
 
 type Post struct {
-	ID          int32                `db:"id" json:"id"`
-	Title       string               `db:"title" json:"title"`
-	Content     types.NullRawMessage `db:"content" json:"content"`
-	SubredditID int32                `db:"subreddit_id" json:"subredditId"`
-	AuthorID    int32                `db:"author_id" json:"authorId"`
-	CreatedAt   time.Time            `db:"created_at" json:"createdAt"`
-	UpdatedAt   time.Time            `db:"updated_at" json:"updatedAt"`
+	ID          int32                   `db:"id" json:"id"`
+	Title       string                  `db:"title" json:"title"`
+	Content     db_types.NullRawMessage `db:"content" json:"content"`
+	SubredditID int32                   `db:"subreddit_id" json:"subredditId"`
+	AuthorID    int32                   `db:"author_id" json:"authorId"`
+	CreatedAt   time.Time               `db:"created_at" json:"createdAt"`
+	UpdatedAt   time.Time               `db:"updated_at" json:"updatedAt"`
 }
 
 type Subreddit struct {
-	ID        int32           `db:"id" json:"id"`
-	Name      string          `db:"name" json:"name"`
-	CreatorID types.NullInt32 `db:"creator_id" json:"creatorId"`
-	CreatedAt time.Time       `db:"created_at" json:"createdAt"`
-	UpdatedAt time.Time       `db:"updated_at" json:"updatedAt"`
+	ID        int32              `db:"id" json:"id"`
+	Name      string             `db:"name" json:"name"`
+	CreatorID db_types.NullInt32 `db:"creator_id" json:"creatorId"`
+	CreatedAt time.Time          `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time          `db:"updated_at" json:"updatedAt"`
 }
 
 type Subscription struct {
@@ -100,14 +100,14 @@ type Subscription struct {
 }
 
 type User struct {
-	ID        int32            `db:"id" json:"id"`
-	Name      string           `db:"name" json:"name"`
-	Email     string           `db:"email" json:"email"`
-	Username  string           `db:"username" json:"username"`
-	Password  string           `db:"password" json:"-"`
-	Image     types.NullString `db:"image" json:"image"`
-	CreatedAt time.Time        `db:"created_at" json:"createdAt"`
-	UpdatedAt time.Time        `db:"updated_at" json:"updatedAt"`
+	ID        int32               `db:"id" json:"id"`
+	Name      string              `db:"name" json:"name"`
+	Email     string              `db:"email" json:"email"`
+	Username  string              `db:"username" json:"username"`
+	Password  string              `db:"password" json:"-"`
+	Image     db_types.NullString `db:"image" json:"image"`
+	CreatedAt time.Time           `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time           `db:"updated_at" json:"updatedAt"`
 }
 
 type Vote struct {

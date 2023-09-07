@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/adhupraba/breadit-server/internal/database"
-	"github.com/adhupraba/breadit-server/internal/helpers"
-	"github.com/adhupraba/breadit-server/internal/types"
+	"github.com/adhupraba/breadit-server/internal/db_types"
+	queryhelpers "github.com/adhupraba/breadit-server/internal/helpers/query_helpers"
 	"github.com/adhupraba/breadit-server/lib"
 	"github.com/adhupraba/breadit-server/utils"
 )
@@ -44,7 +44,7 @@ func (sc *SubredditController) CreateSubreddit(w http.ResponseWriter, r *http.Re
 
 	subreddit, err = lib.DB.CreateSubreddit(r.Context(), database.CreateSubredditParams{
 		Name:      body.Name,
-		CreatorID: types.NullInt32{Int32: user.ID, Valid: true},
+		CreatorID: db_types.NullInt32{Int32: user.ID, Valid: true},
 	})
 
 	if err != nil {
@@ -68,7 +68,7 @@ func (sc *SubredditController) CreateSubreddit(w http.ResponseWriter, r *http.Re
 func (sc *SubredditController) GetSubredditDataWithPosts(w http.ResponseWriter, r *http.Request) {
 	subredditName := chi.URLParam(r, "name")
 
-	data, err, errCode := helpers.GetSubredditWithPosts(r.Context(), subredditName)
+	data, err, errCode := queryhelpers.GetSubredditWithPosts(r.Context(), subredditName)
 
 	if err != nil {
 		utils.RespondWithError(w, errCode, err.Error())

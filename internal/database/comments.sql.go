@@ -7,31 +7,91 @@ package database
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/adhupraba/breadit-server/internal/db_types"
 	"github.com/lib/pq"
 )
 
-const findCommentsOfAPost = `-- name: FindCommentsOfAPost :many
-SELECT id, text, post_id, author_id, reply_to_id, created_at, updated_at FROM comments WHERE post_id = $1
+const createComment = `-- name: CreateComment :one
+INSERT INTO comments (text, post_id, author_id, reply_to_id)
+VALUES ($1, $2, $3, $4)
+RETURNING id, text, post_id, author_id, reply_to_id, created_at, updated_at
 `
 
-func (q *Queries) FindCommentsOfAPost(ctx context.Context, postID int32) ([]Comment, error) {
+type CreateCommentParams struct {
+	Text      string             `db:"text" json:"text"`
+	PostID    int32              `db:"post_id" json:"postId"`
+	AuthorID  int32              `db:"author_id" json:"authorId"`
+	ReplyToID db_types.NullInt32 `db:"reply_to_id" json:"replyToId"`
+}
+
+func (q *Queries) CreateComment(ctx context.Context, arg CreateCommentParams) (Comment, error) {
+	row := q.db.QueryRowContext(ctx, createComment,
+		arg.Text,
+		arg.PostID,
+		arg.AuthorID,
+		arg.ReplyToID,
+	)
+	var i Comment
+	err := row.Scan(
+		&i.ID,
+		&i.Text,
+		&i.PostID,
+		&i.AuthorID,
+		&i.ReplyToID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const findCommentsOfAPost = `-- name: FindCommentsOfAPost :many
+SELECT
+  comments.id, comments.text, comments.post_id, comments.author_id, comments.reply_to_id, comments.created_at, comments.updated_at,
+  users.id, users.name, users.email, users.username, users.password, users.image, users.created_at, users.updated_at,
+  TO_JSON(ARRAY_AGG(DISTINCT comment_votes.*)) AS votes
+FROM comments
+  INNER JOIN users ON users.id = comments.author_id
+  LEFT JOIN comment_votes ON comment_votes.comment_id = comments.id
+WHERE
+  comments.post_id = $1 AND
+  comments.reply_to_id IS NULL
+GROUP BY comments.id, users.id
+`
+
+type FindCommentsOfAPostRow struct {
+	Comment Comment         `db:"comment" json:"comment"`
+	User    User            `db:"user" json:"user"`
+	Votes   json.RawMessage `db:"votes" json:"votes"`
+}
+
+func (q *Queries) FindCommentsOfAPost(ctx context.Context, postID int32) ([]FindCommentsOfAPostRow, error) {
 	rows, err := q.db.QueryContext(ctx, findCommentsOfAPost, postID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Comment
+	var items []FindCommentsOfAPostRow
 	for rows.Next() {
-		var i Comment
+		var i FindCommentsOfAPostRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Text,
-			&i.PostID,
-			&i.AuthorID,
-			&i.ReplyToID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Comment.ID,
+			&i.Comment.Text,
+			&i.Comment.PostID,
+			&i.Comment.AuthorID,
+			&i.Comment.ReplyToID,
+			&i.Comment.CreatedAt,
+			&i.Comment.UpdatedAt,
+			&i.User.ID,
+			&i.User.Name,
+			&i.User.Email,
+			&i.User.Username,
+			&i.User.Password,
+			&i.User.Image,
+			&i.User.CreatedAt,
+			&i.User.UpdatedAt,
+			&i.Votes,
 		); err != nil {
 			return nil, err
 		}
@@ -46,27 +106,51 @@ func (q *Queries) FindCommentsOfAPost(ctx context.Context, postID int32) ([]Comm
 	return items, nil
 }
 
-const findCommentsOfPosts = `-- name: FindCommentsOfPosts :many
-SELECT id, text, post_id, author_id, reply_to_id, created_at, updated_at FROM comments WHERE post_id = ANY($1::INT[])
+const findRepliesForComments = `-- name: FindRepliesForComments :many
+SELECT
+  comments.id, comments.text, comments.post_id, comments.author_id, comments.reply_to_id, comments.created_at, comments.updated_at,
+  users.id, users.name, users.email, users.username, users.password, users.image, users.created_at, users.updated_at,
+  TO_JSON(ARRAY_AGG(DISTINCT comment_votes.*)) AS votes
+FROM comments
+  INNER JOIN users ON users.id = comments.author_id
+  LEFT JOIN comment_votes ON comment_votes.comment_id = comments.id
+WHERE
+  comments.reply_to_id = ANY($1::INT[])
+GROUP BY comments.id, users.id
 `
 
-func (q *Queries) FindCommentsOfPosts(ctx context.Context, dollar_1 []int32) ([]Comment, error) {
-	rows, err := q.db.QueryContext(ctx, findCommentsOfPosts, pq.Array(dollar_1))
+type FindRepliesForCommentsRow struct {
+	Comment Comment         `db:"comment" json:"comment"`
+	User    User            `db:"user" json:"user"`
+	Votes   json.RawMessage `db:"votes" json:"votes"`
+}
+
+func (q *Queries) FindRepliesForComments(ctx context.Context, commentIds []int32) ([]FindRepliesForCommentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, findRepliesForComments, pq.Array(commentIds))
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Comment
+	var items []FindRepliesForCommentsRow
 	for rows.Next() {
-		var i Comment
+		var i FindRepliesForCommentsRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.Text,
-			&i.PostID,
-			&i.AuthorID,
-			&i.ReplyToID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Comment.ID,
+			&i.Comment.Text,
+			&i.Comment.PostID,
+			&i.Comment.AuthorID,
+			&i.Comment.ReplyToID,
+			&i.Comment.CreatedAt,
+			&i.Comment.UpdatedAt,
+			&i.User.ID,
+			&i.User.Name,
+			&i.User.Email,
+			&i.User.Username,
+			&i.User.Password,
+			&i.User.Image,
+			&i.User.CreatedAt,
+			&i.User.UpdatedAt,
+			&i.Votes,
 		); err != nil {
 			return nil, err
 		}

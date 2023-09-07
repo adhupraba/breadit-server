@@ -12,10 +12,11 @@ import (
 	"github.com/adhupraba/breadit-server/lib"
 )
 
-func SignJwtToken(payload string, ttl int64) (signedToken string, err error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": payload,
-		"exp": ttl,
+func SignJwtToken(payload string, ttl time.Time) (signedToken string, err error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+		Subject:   payload,
+		ExpiresAt: &jwt.NumericDate{Time: ttl},
+		IssuedAt:  &jwt.NumericDate{Time: time.Now()},
 	})
 
 	tokenStr, err := token.SignedString([]byte(lib.EnvConfig.JwtSecret))
@@ -37,25 +38,26 @@ func VerifyJwtToken(tokenStr string) (subject string, err error) {
 	})
 
 	if err != nil {
-		return "", fmt.Errorf("Unable to parse token")
+		return "", fmt.Errorf("Unable to parse token - %v", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 
 	if !ok || !token.Valid {
-		return "", fmt.Errorf("Invalid auth token")
+		return "", fmt.Errorf("Invalid auth token - %v", err)
 	}
 
 	exp, err := claims.GetExpirationTime()
+	fmt.Printf("expiration of the token => %v\n", exp)
 
 	if err != nil || time.Now().Unix() > exp.Unix() {
-		return "", fmt.Errorf("Expired auth token")
+		return "", fmt.Errorf("Expired auth token - %v", err)
 	}
 
 	sub, err := claims.GetSubject()
 
 	if err != nil {
-		return "", fmt.Errorf("Subject not found in token")
+		return "", fmt.Errorf("Subject not found in token - %v", err)
 	}
 
 	return sub, nil
@@ -65,14 +67,16 @@ func GetUserFromToken(w http.ResponseWriter, r *http.Request, tokenStr string) (
 	sub, err := VerifyJwtToken(tokenStr)
 
 	if err != nil {
-		return database.User{}, fmt.Errorf("Invalid token")
+		return database.User{}, fmt.Errorf("Invalid token - %v", err)
 	}
 
 	userId, err := strconv.Atoi(sub)
 
 	if err != nil {
-		return database.User{}, fmt.Errorf("Invalid subject")
+		return database.User{}, fmt.Errorf("Invalid subject - %v", err)
 	}
+
+	fmt.Printf("user id from token is => %v\n", userId)
 
 	user, err := lib.DB.FindUserById(r.Context(), int32(userId))
 

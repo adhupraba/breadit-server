@@ -1,4 +1,4 @@
-package helpers
+package queryhelpers
 
 import (
 	"context"
@@ -96,6 +96,10 @@ func GetPostsOfSubreddit(ctx context.Context, params database.FindPostsOfSubredd
 		}
 
 		postsWithData = append(postsWithData, postWithData)
+	}
+
+	if postsWithData == nil {
+		postsWithData = []PostWithData{}
 	}
 
 	return postsWithData, nil, 0

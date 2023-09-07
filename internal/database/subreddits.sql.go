@@ -8,7 +8,7 @@ package database
 import (
 	"context"
 
-	"github.com/adhupraba/breadit-server/internal/types"
+	"github.com/adhupraba/breadit-server/internal/db_types"
 )
 
 const createSubreddit = `-- name: CreateSubreddit :one
@@ -16,8 +16,8 @@ INSERT INTO subreddits (name, creator_id) VALUES ($1, $2) RETURNING id, name, cr
 `
 
 type CreateSubredditParams struct {
-	Name      string          `db:"name" json:"name"`
-	CreatorID types.NullInt32 `db:"creator_id" json:"creatorId"`
+	Name      string             `db:"name" json:"name"`
+	CreatorID db_types.NullInt32 `db:"creator_id" json:"creatorId"`
 }
 
 func (q *Queries) CreateSubreddit(ctx context.Context, arg CreateSubredditParams) (Subreddit, error) {
@@ -55,8 +55,8 @@ SELECT id, name, creator_id, created_at, updated_at FROM subreddits WHERE id = $
 `
 
 type FindSubredditOfCreatorParams struct {
-	ID        int32           `db:"id" json:"id"`
-	CreatorID types.NullInt32 `db:"creator_id" json:"creatorId"`
+	ID        int32              `db:"id" json:"id"`
+	CreatorID db_types.NullInt32 `db:"creator_id" json:"creatorId"`
 }
 
 func (q *Queries) FindSubredditOfCreator(ctx context.Context, arg FindSubredditOfCreatorParams) (Subreddit, error) {
@@ -70,4 +70,62 @@ func (q *Queries) FindSubredditOfCreator(ctx context.Context, arg FindSubredditO
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const searchSubreddits = `-- name: SearchSubreddits :many
+SELECT
+  subre.id, subre.name, subre.creator_id, subre.created_at, subre.updated_at,
+  COALESCE(post_agg.post_count, 0) AS post_count,
+  COALESCE(sub_agg.sub_count, 0) AS sub_count
+FROM subreddits AS subre
+LEFT JOIN (
+  SELECT subreddit_id, COUNT(*) AS post_count
+  FROM posts
+  GROUP BY subreddit_id
+) AS post_agg ON post_agg.subreddit_id = subre.id
+LEFT JOIN (
+  SELECT subreddit_id, COUNT(*) AS sub_count
+  FROM subscriptions
+  GROUP BY subreddit_id
+) AS sub_agg ON sub_agg.subreddit_id = subre.id
+WHERE subre.name LIKE $1
+ORDER BY subre.name ASC
+LIMIT 5
+`
+
+type SearchSubredditsRow struct {
+	Subreddit Subreddit `db:"subreddit" json:"subreddit"`
+	PostCount int64     `db:"post_count" json:"postCount"`
+	SubCount  int64     `db:"sub_count" json:"subCount"`
+}
+
+func (q *Queries) SearchSubreddits(ctx context.Context, name string) ([]SearchSubredditsRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchSubreddits, name)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchSubredditsRow
+	for rows.Next() {
+		var i SearchSubredditsRow
+		if err := rows.Scan(
+			&i.Subreddit.ID,
+			&i.Subreddit.Name,
+			&i.Subreddit.CreatorID,
+			&i.Subreddit.CreatedAt,
+			&i.Subreddit.UpdatedAt,
+			&i.PostCount,
+			&i.SubCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

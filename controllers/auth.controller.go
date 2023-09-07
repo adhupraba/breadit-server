@@ -13,6 +13,7 @@ import (
 
 	"github.com/adhupraba/breadit-server/constants"
 	"github.com/adhupraba/breadit-server/internal/database"
+	"github.com/adhupraba/breadit-server/internal/db_types"
 	"github.com/adhupraba/breadit-server/internal/types"
 	"github.com/adhupraba/breadit-server/lib"
 	"github.com/adhupraba/breadit-server/utils"
@@ -29,6 +30,10 @@ type signupBody struct {
 	Name     string `json:"name" validate:"required,min=2,max=30"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=5,max=30"`
+}
+
+type updateUsernameBody struct {
+	Username string `json:"username" validate:"required,min=3,max=32"`
 }
 
 type authResponse struct {
@@ -82,7 +87,7 @@ func (ac *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 		Email:    body.Email,
 		Password: string(hash),
 		Username: randUsername,
-		Image:    types.NullString{String: image, Valid: true},
+		Image:    db_types.NullString{String: image, Valid: true},
 	})
 
 	if err != nil {
@@ -150,25 +155,28 @@ func (ac *AuthController) RefreshAccessToken(w http.ResponseWriter, r *http.Requ
 	cookie, err := r.Cookie("refresh_token")
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusForbidden, errMessage)
+		utils.RespondWithError(w, http.StatusUnauthorized, errMessage)
 		return
 	}
 
 	user, err := utils.GetUserFromToken(w, r, cookie.Value)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusForbidden, "The user belonging to this token no logger exists")
+		utils.RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	accessToken, err := getAccessToken(user, w, r)
 
 	if err != nil {
-		utils.RespondWithError(w, http.StatusForbidden, errMessage)
+		utils.RespondWithError(w, http.StatusUnauthorized, errMessage)
 		return
 	}
 
-	utils.RespondWithJson(w, http.StatusOK, types.Json{"accessToken": accessToken})
+	utils.RespondWithJson(w, http.StatusOK, types.Json{
+		"accessToken":       accessToken,
+		"accessTokenExpiry": int(time.Now().Add(constants.AccessTokenTTL).UnixMilli()),
+	})
 }
 
 func (ac *AuthController) GetUser(w http.ResponseWriter, r *http.Request, user database.User) {
@@ -191,7 +199,7 @@ func (ac *AuthController) LogoutUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAccessToken(user database.User, w http.ResponseWriter, r *http.Request) (string, error) {
-	accessToken, err := utils.SignJwtToken(strconv.Itoa(int(user.ID)), time.Now().Add(constants.AccessTokenTTL).Unix())
+	accessToken, err := utils.SignJwtToken(strconv.Itoa(int(user.ID)), time.Now().Add(constants.AccessTokenTTL))
 
 	if err != nil {
 		return "", err
@@ -200,7 +208,6 @@ func getAccessToken(user database.User, w http.ResponseWriter, r *http.Request) 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
-		Expires:  time.Now().Add(constants.AccessTokenTTL),
 		MaxAge:   int(constants.AccessTokenTTL) / int(time.Second),
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
@@ -211,7 +218,7 @@ func getAccessToken(user database.User, w http.ResponseWriter, r *http.Request) 
 }
 
 func getRefreshToken(user database.User, w http.ResponseWriter, r *http.Request) (string, error) {
-	refreshToken, err := utils.SignJwtToken(strconv.Itoa(int(user.ID)), time.Now().Add(constants.AccessTokenTTL).Unix())
+	refreshToken, err := utils.SignJwtToken(strconv.Itoa(int(user.ID)), time.Now().Add(constants.RefreshTokenTTL))
 
 	if err != nil {
 		fmt.Println("sign refresh token error =>", err)
@@ -228,7 +235,6 @@ func getRefreshToken(user database.User, w http.ResponseWriter, r *http.Request)
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
-		Expires:  time.Now().Add(constants.RefreshTokenTTL),
 		MaxAge:   int(constants.RefreshTokenTTL) / int(time.Second),
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
@@ -242,7 +248,6 @@ func setLoggedInCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "logged_in",
 		Value:    "true",
-		Expires:  time.Now().Add(constants.AccessTokenTTL),
 		MaxAge:   int(constants.AccessTokenTTL) / int(time.Second),
 		HttpOnly: false,
 		Secure:   constants.UseSecureCookies,
@@ -251,12 +256,11 @@ func setLoggedInCookie(w http.ResponseWriter) {
 }
 
 func clearCookies(w http.ResponseWriter) {
-	expires := time.Date(1970, 1, 1, 0, 0, 0, 0, time.Now().UTC().Location())
+	// expires := time.Date(1970, 1, 1, 0, 0, 0, 0, time.Now().UTC().Location())
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
-		Expires:  expires,
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
@@ -266,7 +270,6 @@ func clearCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    "",
-		Expires:  expires,
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
@@ -276,10 +279,43 @@ func clearCookies(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "logged_in",
 		Value:    "",
-		Expires:  expires,
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   constants.UseSecureCookies,
 		Path:     "/",
 	})
+}
+
+func (ac *AuthController) UpdateUsername(w http.ResponseWriter, r *http.Request, user database.User) {
+	var body updateUsernameBody
+	err := utils.BodyParser(r.Body, &body)
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	existingUser, err := lib.DB.FindUserByUsername(r.Context(), body.Username)
+
+	if err != nil && !strings.Contains(err.Error(), "no rows") {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Error when checking username")
+		return
+	}
+
+	if existingUser.ID != 0 {
+		utils.RespondWithError(w, http.StatusConflict, "Username already exists.")
+		return
+	}
+
+	err = lib.DB.UpdateUsername(r.Context(), database.UpdateUsernameParams{
+		Username: body.Username,
+		ID:       user.ID,
+	})
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Error when updating username")
+		return
+	}
+
+	utils.RespondWithJson(w, http.StatusOK, types.Json{"message": "Username updated successfully"})
 }

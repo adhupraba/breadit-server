@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/adhupraba/breadit-server/internal/database"
-	"github.com/adhupraba/breadit-server/internal/types"
+	"github.com/adhupraba/breadit-server/internal/db_types"
 )
 
 func ParseJsonComment(data json.RawMessage) (database.Comment, error) {
@@ -58,7 +58,7 @@ func transformJsonComment(commentMap map[string]interface{}) (database.Comment, 
 		return database.Comment{}, err
 	}
 
-	replyToId := types.NullInt32{}
+	replyToId := db_types.NullInt32{}
 
 	if toId, ok := commentMap["reply_to_id"].(float64); ok {
 		replyToId.Int32 = int32(toId)

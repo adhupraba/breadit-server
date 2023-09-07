@@ -9,7 +9,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/adhupraba/breadit-server/internal/types"
+	"github.com/adhupraba/breadit-server/internal/db_types"
 	"github.com/lib/pq"
 )
 
@@ -20,10 +20,10 @@ RETURNING id, title, content, subreddit_id, author_id, created_at, updated_at
 `
 
 type CreatePostParams struct {
-	Title       string               `db:"title" json:"title"`
-	Content     types.NullRawMessage `db:"content" json:"content"`
-	SubredditID int32                `db:"subreddit_id" json:"subredditId"`
-	AuthorID    int32                `db:"author_id" json:"authorId"`
+	Title       string                  `db:"title" json:"title"`
+	Content     db_types.NullRawMessage `db:"content" json:"content"`
+	SubredditID int32                   `db:"subreddit_id" json:"subredditId"`
+	AuthorID    int32                   `db:"author_id" json:"authorId"`
 }
 
 func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (Post, error) {
@@ -107,26 +107,28 @@ FROM posts
   INNER JOIN users ON users.id = posts.author_id
   INNER JOIN subreddits ON subreddits.id = posts.subreddit_id
   LEFT JOIN votes ON votes.post_id = posts.id
-  LEFT JOIN comments ON comments.post_id = posts.id,
+  -- take top level comments only
+  LEFT JOIN comments ON comments.post_id = posts.id AND comments.reply_to_id IS NULL,
   vars
 WHERE (
   CASE
     WHEN
       vars.subreddit_name IS NOT NULL AND
-      LENGTH(vars.subreddit_name) > 0 AND
-      subreddits.name = vars.subreddit_name
-      THEN TRUE
-    WHEN vars.is_authenticated AND ARRAY_LENGTH(vars.subreddit_ids, 1) > 0
-      THEN subreddits.id = ANY(vars.subreddit_ids)
+      LENGTH(vars.subreddit_name) > 0
+        THEN subreddits.name = vars.subreddit_name
+    WHEN 
+      vars.is_authenticated AND
+      ARRAY_LENGTH(vars.subreddit_ids, 1) > 0
+        THEN subreddits.id = ANY(vars.subreddit_ids)
     WHEN
       vars.subreddit_id IS NOT NULL AND
-      vars.subreddit_id > 0 AND
-      posts.subreddit_id = vars.subreddit_id
-      THEN TRUE
+      vars.subreddit_id > 0
+        THEN posts.subreddit_id = vars.subreddit_id
+ 		ELSE TRUE
   END
 )
 GROUP BY posts.id, users.id, subreddits.id
-ORDER BY posts.created_at DESC
+ORDER BY posts.created_at DESC, posts.id DESC
 OFFSET $1 LIMIT $2
 `
 

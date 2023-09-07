@@ -16,12 +16,13 @@ func GetPostRoutes() *chi.Mux {
 	return routes.declarePostRoutes()
 }
 
-func (sr *PostRoutes) declarePostRoutes() *chi.Mux {
+func (pr *PostRoutes) declarePostRoutes() *chi.Mux {
 	postRoute := chi.NewRouter()
 
-	postRoute.Post("/create", middlewares.AuthMiddleware(sr.postController.CreatePost))
-	postRoute.Patch("/vote", middlewares.AuthMiddleware(sr.postController.VotePost))
-	postRoute.Get("/posts", sr.postController.GetPaginatedPosts)
+	postRoute.Post("/create", middlewares.AuthMiddleware(pr.postController.CreatePost))
+	postRoute.Patch("/vote", middlewares.AuthMiddleware(pr.postController.VotePost))
+	postRoute.Get("/posts", pr.postController.GetPaginatedPosts)
+	postRoute.Get("/{id}", pr.postController.GetPostData)
 
 	return postRoute
 }

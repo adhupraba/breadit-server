@@ -34,7 +34,11 @@ func main() {
 
 	serve := http.Server{
 		Handler: router,
-		Addr:    ":" + lib.EnvConfig.Port,
+		// ! by adding `127.0.0.1` in the Addr field, the popup to accept incoming connections will not appear anymore
+		// ! note that the client also must have the api url as http://127.0.0.1 instead of http://localhost
+		// ! if http://localhost was used, then the client will try to connect to ::1 on whatever port used (::1 is the ipv6 of localhost)
+		// Addr: "127.0.0.1:" + lib.EnvConfig.Port,
+		Addr: ":" + lib.EnvConfig.Port,
 	}
 
 	log.Printf("Server listening on port %s", lib.EnvConfig.Port)
@@ -46,7 +50,9 @@ func main() {
 	apiRouter.Mount("/subreddit", routes.GetSubredditRoutes())
 	apiRouter.Mount("/subscription", routes.GetSubscriptionRoutes())
 	apiRouter.Mount("/post", routes.GetPostRoutes())
+	apiRouter.Mount("/comment", routes.GetCommentRoutes())
 	apiRouter.Mount("/utils", routes.GetUtilsRoutes())
+	apiRouter.Mount("/search", routes.GetSearchRoutes())
 
 	router.Mount("/api", apiRouter)
 

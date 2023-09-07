@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	AccessTokenTTL                  = time.Second * 30
-	RefreshTokenTTL                 = time.Second * 180
-	CacheAfterUpvotes               = 1
-	InfiniteScrollPaginationResults = 2
+	AccessTokenTTL                  = time.Hour * 24 * 6 // 3 days
+	RefreshTokenTTL                 = time.Hour * 24 * 7 // 7 days -> equivalent to SESSION_MAX_AGE in ui
+	CacheAfterUpvotes               = 10
+	InfiniteScrollPaginationResults = 4
 )
 
 var UseSecureCookies = lib.EnvConfig.Env == "staging" || lib.EnvConfig.Env == "production"

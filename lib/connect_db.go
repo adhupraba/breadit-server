@@ -8,6 +8,7 @@ import (
 )
 
 var DB *database.Queries
+var SqlConn *sql.DB
 
 func ConnectDb() {
 	log.Println("db url", EnvConfig.DbUrl)

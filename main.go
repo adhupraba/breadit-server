@@ -22,6 +22,10 @@ func init() {
 }
 
 func main() {
+	if lib.SqlConn != nil {
+		defer lib.SqlConn.Close()
+	}
+
 	router := chi.NewRouter()
 	// router.Use(cors.AllowAll().Handler)
 	router.Use(cors.Handler(cors.Options{

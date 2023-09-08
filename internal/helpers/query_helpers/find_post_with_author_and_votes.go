@@ -22,8 +22,6 @@ func FindPostWithAuthorAndVotes(ctx context.Context, postId int32) (postData typ
 		return types.PostWithAuthorAndVotes{}, errors.New("Error when fetching post details"), http.StatusInternalServerError
 	}
 
-	// transformedPost, err := transformer.TransformPostWithAuthorAndVotes(post)
-
 	votes, err := rawmessageparser.ParseJsonVotes(post.Votes)
 
 	if err != nil {

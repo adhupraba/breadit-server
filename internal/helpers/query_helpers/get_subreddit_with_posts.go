@@ -72,7 +72,7 @@ func GetPostsOfSubreddit(ctx context.Context, params database.FindPostsOfSubredd
 		return []PostWithData{}, fmt.Errorf("Error while fetching posts of the subreddit."), http.StatusInternalServerError
 	}
 
-	var postsWithData []PostWithData
+	postsWithData := make([]PostWithData, len(posts))
 
 	for _, post := range posts {
 		votes, err := rawmessageparser.ParseJsonVotes(post.Votes)
@@ -96,10 +96,6 @@ func GetPostsOfSubreddit(ctx context.Context, params database.FindPostsOfSubredd
 		}
 
 		postsWithData = append(postsWithData, postWithData)
-	}
-
-	if postsWithData == nil {
-		postsWithData = []PostWithData{}
 	}
 
 	return postsWithData, nil, 0

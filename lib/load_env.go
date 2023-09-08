@@ -3,16 +3,18 @@ package lib
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type envConfig struct {
-	Port      string
-	DbUrl     string
-	JwtSecret string
-	RedisUrl  string
-	Env       string
+	Port               string
+	DbUrl              string
+	JwtSecret          string
+	RedisUrl           string
+	Env                string
+	CorsAllowedOrigins []string
 }
 
 var EnvConfig envConfig
@@ -31,15 +33,22 @@ func LoadEnv() {
 	}
 
 	EnvConfig = envConfig{
-		Port:      os.Getenv("PORT"),
-		DbUrl:     os.Getenv("DB_URL"),
-		JwtSecret: os.Getenv("JWT_SECRET"),
-		RedisUrl:  os.Getenv("REDIS_URL"),
-		Env:       env,
+		Port:               os.Getenv("PORT"),
+		DbUrl:              os.Getenv("DB_URL"),
+		JwtSecret:          os.Getenv("JWT_SECRET"),
+		RedisUrl:           os.Getenv("REDIS_URL"),
+		Env:                env,
+		CorsAllowedOrigins: []string{},
 	}
 
 	if EnvConfig.Env == "" {
 		EnvConfig.Env = "development"
+	}
+
+	if os.Getenv("CORS_ALLOWED_ORIGINGS") == "" {
+		EnvConfig.CorsAllowedOrigins = []string{"*"}
+	} else {
+		EnvConfig.CorsAllowedOrigins = strings.Split(os.Getenv("CORS_ALLOWED_ORIGINGS"), " ")
 	}
 
 	if EnvConfig.Port == "" {

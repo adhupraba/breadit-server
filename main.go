@@ -1,7 +1,6 @@
 package main
 
 import (
-	"embed"
 	"log"
 	"net/http"
 
@@ -12,8 +11,6 @@ import (
 	"github.com/adhupraba/breadit-server/lib"
 	"github.com/adhupraba/breadit-server/routes"
 )
-
-var embedMigrations embed.FS
 
 func init() {
 	lib.LoadEnv()
@@ -29,9 +26,9 @@ func main() {
 	router := chi.NewRouter()
 	// router.Use(cors.AllowAll().Handler)
 	router.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins:   lib.EnvConfig.CorsAllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"},
-		AllowedHeaders:   []string{"*"},
+		AllowedHeaders:   []string{"Access-Control-Allow-Origin", "*"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
 	}))

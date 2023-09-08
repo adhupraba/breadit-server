@@ -74,7 +74,7 @@ func GetPostsOfSubreddit(ctx context.Context, params database.FindPostsOfSubredd
 
 	postsWithData := make([]PostWithData, len(posts))
 
-	for _, post := range posts {
+	for idx, post := range posts {
 		votes, err := rawmessageparser.ParseJsonVotes(post.Votes)
 
 		if err != nil {
@@ -95,7 +95,7 @@ func GetPostsOfSubreddit(ctx context.Context, params database.FindPostsOfSubredd
 			Subreddit: post.Subreddit,
 		}
 
-		postsWithData = append(postsWithData, postWithData)
+		postsWithData[idx] = postWithData
 	}
 
 	return postsWithData, nil, 0

@@ -51,7 +51,7 @@ func FindCommentsAndRepliesOfAPost(ctx context.Context, postId int32) (commentsW
 
 	commentsWithReplies = make([]types.CommentWithReplies, len(comments))
 
-	for _, comment := range comments {
+	for idx, comment := range comments {
 		votes, err := rawmessageparser.ParseJsonCommentVotes(comment.Votes)
 
 		if err != nil {
@@ -73,7 +73,7 @@ func FindCommentsAndRepliesOfAPost(ctx context.Context, postId int32) (commentsW
 			Replies: replies,
 		}
 
-		commentsWithReplies = append(commentsWithReplies, parentComment)
+		commentsWithReplies[idx] = parentComment
 	}
 
 	return commentsWithReplies, nil, 0

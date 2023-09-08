@@ -209,9 +209,10 @@ func getAccessToken(user database.User, w http.ResponseWriter, r *http.Request) 
 		Name:     "access_token",
 		Value:    accessToken,
 		MaxAge:   int(constants.AccessTokenTTL) / int(time.Second),
-		HttpOnly: true,
-		Secure:   constants.UseSecureCookies,
 		Path:     "/",
+		HttpOnly: true,
+		Secure:   constants.UseSecureCookies(),
+		SameSite: constants.UseSameSiteMethod(),
 	})
 
 	return accessToken, nil
@@ -236,9 +237,10 @@ func getRefreshToken(user database.User, w http.ResponseWriter, r *http.Request)
 		Name:     "refresh_token",
 		Value:    refreshToken,
 		MaxAge:   int(constants.RefreshTokenTTL) / int(time.Second),
-		HttpOnly: true,
-		Secure:   constants.UseSecureCookies,
 		Path:     "/",
+		HttpOnly: true,
+		Secure:   constants.UseSecureCookies(),
+		SameSite: constants.UseSameSiteMethod(),
 	})
 
 	return refreshToken, nil
@@ -249,9 +251,10 @@ func setLoggedInCookie(w http.ResponseWriter) {
 		Name:     "logged_in",
 		Value:    "true",
 		MaxAge:   int(constants.AccessTokenTTL) / int(time.Second),
-		HttpOnly: false,
-		Secure:   constants.UseSecureCookies,
 		Path:     "/",
+		HttpOnly: false,
+		Secure:   constants.UseSecureCookies(),
+		SameSite: constants.UseSameSiteMethod(),
 	})
 }
 
@@ -262,27 +265,30 @@ func clearCookies(w http.ResponseWriter) {
 		Name:     "refresh_token",
 		Value:    "",
 		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   constants.UseSecureCookies,
 		Path:     "/",
+		HttpOnly: true,
+		Secure:   constants.UseSecureCookies(),
+		SameSite: constants.UseSameSiteMethod(),
 	})
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    "",
 		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   constants.UseSecureCookies,
 		Path:     "/",
+		HttpOnly: true,
+		Secure:   constants.UseSecureCookies(),
+		SameSite: constants.UseSameSiteMethod(),
 	})
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "logged_in",
 		Value:    "",
 		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   constants.UseSecureCookies,
 		Path:     "/",
+		HttpOnly: false,
+		Secure:   constants.UseSecureCookies(),
+		SameSite: constants.UseSameSiteMethod(),
 	})
 }
 

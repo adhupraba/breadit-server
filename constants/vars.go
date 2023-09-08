@@ -1,6 +1,7 @@
 package constants
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/adhupraba/breadit-server/lib"
@@ -13,4 +14,14 @@ const (
 	InfiniteScrollPaginationResults = 4
 )
 
-var UseSecureCookies = lib.EnvConfig.Env == "staging" || lib.EnvConfig.Env == "production"
+var UseSecureCookies = func() bool {
+	return lib.EnvConfig.Env == "staging" || lib.EnvConfig.Env == "production"
+}
+
+var UseSameSiteMethod = func() http.SameSite {
+	if lib.EnvConfig.Env == "staging" || lib.EnvConfig.Env == "production" {
+		return http.SameSiteNoneMode
+	} else {
+		return http.SameSiteDefaultMode
+	}
+}

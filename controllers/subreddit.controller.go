@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -76,4 +77,66 @@ func (sc *SubredditController) GetSubredditDataWithPosts(w http.ResponseWriter, 
 	}
 
 	utils.RespondWithJson(w, http.StatusOK, data)
+}
+
+func (sc *SubredditController) GetPaginatedSubredditList(w http.ResponseWriter, r *http.Request) {
+	type urlSearchParams struct {
+		Limit     int `validate:"required,number,gt=0"`
+		Page      int `validate:"required,number,gte=0"`
+		CreatedBy string
+	}
+
+	query := r.URL.Query()
+
+	limit, err := strconv.Atoi(query.Get("limit"))
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Received invalid limit value")
+		return
+	}
+
+	page, err := strconv.Atoi(query.Get("page"))
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusUnprocessableEntity, "Received invalid page value")
+		return
+	}
+
+	searchParams := urlSearchParams{
+		Limit:     limit,
+		Page:      page,
+		CreatedBy: query.Get("createdBy"),
+	}
+
+	var userId db_types.NullInt32
+	cookie, _ := r.Cookie("access_token")
+
+	if cookie != nil && searchParams.CreatedBy == "self" {
+		user, _ := utils.GetUserFromToken(w, r, cookie.Value)
+
+		if user.ID != 0 {
+			userId = db_types.NullInt32{
+				Int32: user.ID,
+				Valid: true,
+			}
+		}
+	}
+
+	subreddits, err := lib.DB.SearchSubreddits(r.Context(), database.SearchSubredditsParams{
+		Offset: (int32(searchParams.Page) - 1) * int32(searchParams.Limit),
+		Limit:  int32(searchParams.Limit),
+		Name:   "%",
+		UserID: userId,
+	})
+
+	if err != nil {
+		utils.RespondWithError(w, http.StatusInternalServerError, "Error fetching subreddits")
+		return
+	}
+
+	if subreddits == nil {
+		subreddits = []database.SearchSubredditsRow{}
+	}
+
+	utils.RespondWithJson(w, http.StatusOK, subreddits)
 }

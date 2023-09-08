@@ -73,25 +73,43 @@ func (q *Queries) FindSubredditOfCreator(ctx context.Context, arg FindSubredditO
 }
 
 const searchSubreddits = `-- name: SearchSubreddits :many
+WITH vars (name, user_id) AS (
+	VALUES ($3::TEXT, $4::INT)
+)
 SELECT
-  subre.id, subre.name, subre.creator_id, subre.created_at, subre.updated_at,
+  DISTINCT subre.id, subre.name, subre.creator_id, subre.created_at, subre.updated_at,
   COALESCE(post_agg.post_count, 0) AS post_count,
   COALESCE(sub_agg.sub_count, 0) AS sub_count
 FROM subreddits AS subre
-LEFT JOIN (
-  SELECT subreddit_id, COUNT(*) AS post_count
-  FROM posts
-  GROUP BY subreddit_id
-) AS post_agg ON post_agg.subreddit_id = subre.id
-LEFT JOIN (
-  SELECT subreddit_id, COUNT(*) AS sub_count
-  FROM subscriptions
-  GROUP BY subreddit_id
-) AS sub_agg ON sub_agg.subreddit_id = subre.id
-WHERE subre.name LIKE $1
+  INNER JOIN subscriptions AS sub ON sub.subreddit_id = subre.id
+  LEFT JOIN (
+    SELECT subreddit_id, COUNT(*) AS post_count
+    FROM posts
+    GROUP BY subreddit_id
+  ) AS post_agg ON post_agg.subreddit_id = subre.id
+  LEFT JOIN (
+    SELECT subreddit_id, COUNT(*) AS sub_count
+    FROM subscriptions
+    GROUP BY subreddit_id
+  ) AS sub_agg ON sub_agg.subreddit_id = subre.id,
+  vars
+WHERE
+  subre.name LIKE vars.name AND (
+    CASE
+      WHEN vars.user_id IS NULL THEN TRUE
+      ELSE sub.user_id = vars.user_id
+    END
+  )
 ORDER BY subre.name ASC
-LIMIT 5
+OFFSET $1 LIMIT $2
 `
+
+type SearchSubredditsParams struct {
+	Offset int32              `db:"offset" json:"offset"`
+	Limit  int32              `db:"limit" json:"limit"`
+	Name   string             `db:"name" json:"name"`
+	UserID db_types.NullInt32 `db:"user_id" json:"userId"`
+}
 
 type SearchSubredditsRow struct {
 	Subreddit Subreddit `db:"subreddit" json:"subreddit"`
@@ -99,8 +117,13 @@ type SearchSubredditsRow struct {
 	SubCount  int64     `db:"sub_count" json:"subCount"`
 }
 
-func (q *Queries) SearchSubreddits(ctx context.Context, name string) ([]SearchSubredditsRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchSubreddits, name)
+func (q *Queries) SearchSubreddits(ctx context.Context, arg SearchSubredditsParams) ([]SearchSubredditsRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchSubreddits,
+		arg.Offset,
+		arg.Limit,
+		arg.Name,
+		arg.UserID,
+	)
 	if err != nil {
 		return nil, err
 	}

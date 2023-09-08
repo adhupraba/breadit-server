@@ -21,6 +21,7 @@ func (sr *SubredditRoutes) declareSubredditRoutes() *chi.Mux {
 
 	subredditRoute.Post("/", middlewares.AuthMiddleware(sr.subRedditController.CreateSubreddit))
 	subredditRoute.Get("/{name}", sr.subRedditController.GetSubredditDataWithPosts)
+	subredditRoute.Get("/list", sr.subRedditController.GetPaginatedSubredditList)
 
 	return subredditRoute
 }

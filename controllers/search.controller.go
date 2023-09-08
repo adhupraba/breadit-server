@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/adhupraba/breadit-server/internal/database"
 	"github.com/adhupraba/breadit-server/lib"
 	"github.com/adhupraba/breadit-server/utils"
 )
@@ -17,7 +18,11 @@ func (cc *SearchController) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results, err := lib.DB.SearchSubreddits(r.Context(), query+"%")
+	results, err := lib.DB.SearchSubreddits(r.Context(), database.SearchSubredditsParams{
+		Name:   query + "%",
+		Offset: 0,
+		Limit:  5,
+	})
 
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, "Error when searching subreddits")

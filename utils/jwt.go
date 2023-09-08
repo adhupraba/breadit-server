@@ -48,7 +48,6 @@ func VerifyJwtToken(tokenStr string) (subject string, err error) {
 	}
 
 	exp, err := claims.GetExpirationTime()
-	fmt.Printf("expiration of the token => %v\n", exp)
 
 	if err != nil || time.Now().Unix() > exp.Unix() {
 		return "", fmt.Errorf("Expired auth token - %v", err)
@@ -75,8 +74,6 @@ func GetUserFromToken(w http.ResponseWriter, r *http.Request, tokenStr string) (
 	if err != nil {
 		return database.User{}, fmt.Errorf("Invalid subject - %v", err)
 	}
-
-	fmt.Printf("user id from token is => %v\n", userId)
 
 	user, err := lib.DB.FindUserById(r.Context(), int32(userId))
 

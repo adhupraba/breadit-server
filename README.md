@@ -1,3 +1,9 @@
+Live application - https://breadit-chi.vercel.app/
+
+Frontend repo - https://github.com/adhupraba/breadit-client/
+
+---
+
 # Create a goose migration file
 
 ```bash

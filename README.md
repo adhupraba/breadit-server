@@ -1,4 +1,4 @@
-Live application - https://breadit-chi.vercel.app/
+Live application - https://breadit.adhupraba.com/
 
 Frontend repo - https://github.com/adhupraba/breadit-client/
 
